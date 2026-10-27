@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+# Detect newly published Fedora Asahi releases and the Asahi Linux tag they use.
+#
+# First successful run stores the newest Fedora tag as a baseline. Later runs
+# exit 10 and print the new Fedora tag and the matching AsahiLinux/linux tag
+# when it changes. The match is verified by commit id. The stored tag only
+# advances once a match is found, so an unmatched release is retried next run.
+#
+# Usage: asahi-tag-check [--state-file PATH] [--reset]
+# Exit:  0 current/baseline, 10 update available, 1 error
+set -euo pipefail
+
+FEDORA_URL=${FEDORA_URL:-https://gitlab.com/fedora-asahi/kernel-asahi.git}
+ASAHI_URL=${ASAHI_URL:-https://github.com/AsahiLinux/linux.git}
+UPDATE_AVAILABLE=10
+TAG_RE='^asahi-[0-9]+(\.[0-9]+)+-[0-9]+$'
+
+die() { echo "error: $*" >&2; exit 1; }
+
+# Sortable key for a release tag: asahi-7.2.11-1 -> 7.2.11.1
+tag_key() { local k=${1#asahi-}; echo "${k//-/.}"; }
+
+# True if version of tag $1 is strictly older than that of tag $2.
+tag_lt() {
+    [[ $(tag_key "$1") != "$(tag_key "$2")" ]] &&
+        [[ $(printf '%s\n%s\n' "$(tag_key "$1")" "$(tag_key "$2")" | sort -V | head -n1) == "$(tag_key "$1")" ]]
+}
+
+# Print "tag commit" lines, using the peeled commit for annotated tags.
+fetch_refs() {
+    local out
+    out=$(timeout 60 git ls-remote --tags "$1") || die "could not list tags from $1"
+    awk -F'\t' '
+        $2 !~ /^refs\/tags\// { next }
+        { name = substr($2, 11) }
+        name ~ /\^\{\}$/ { peeled[substr(name, 1, length(name) - 3)] = $1; next }
+        { tags[name] = $1 }
+        END { for (n in tags) print n, (n in peeled ? peeled[n] : tags[n]) }
+    ' <<<"$out"
+}
+
+state_file=.state/fedora-asahi-tag-check
+reset=0
+while (($#)); do
+    case $1 in
+        --state-file) [[ $# -ge 2 ]] || die "--state-file needs a path"; state_file=$2; shift 2 ;;
+        --reset) reset=1; shift ;;
+        -h|--help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        *) die "unknown argument: $1" ;;
+    esac
+done
+
+fedora_refs=$(fetch_refs "$FEDORA_URL")
+latest=$(awk '{print $1}' <<<"$fedora_refs" | grep -E "$TAG_RE" |
+    while read -r t; do echo "$(tag_key "$t") $t"; done | sort -V | tail -n1 | cut -d' ' -f2) || true
+[[ -n $latest ]] || die "Fedora Asahi returned no asahi-X.Y.Z-N release tags"
+commit=$(awk -v t="$latest" '$1 == t {print $2}' <<<"$fedora_refs")
+
+previous=
+if [[ -f $state_file ]]; then
+    previous=$(<"$state_file")
+    [[ $previous =~ $TAG_RE ]] ||
+        die "invalid state file $state_file: expected a Fedora Asahi release tag"
+fi
+if [[ -n $previous ]] && tag_lt "$latest" "$previous"; then
+    die "latest Fedora tag $latest is older than stored tag $previous"
+fi
+
+# Prefer a same-named Asahi tag at the commit; else the first release tag there.
+asahi_refs=$(fetch_refs "$ASAHI_URL")
+matches=$(awk -v c="$commit" '$2 == c {print $1}' <<<"$asahi_refs" | grep -E "$TAG_RE" | sort || true)
+asahi_tag=
+if grep -qxF "$latest" <<<"$matches"; then
+    asahi_tag=$latest
+elif [[ -n $matches ]]; then
+    asahi_tag=$(head -n1 <<<"$matches")
+fi
+[[ -n $asahi_tag ]] || die "Fedora $latest (commit $commit) has no matching tag in AsahiLinux/linux"
+
+save_state() { mkdir -p "$(dirname "$state_file")"; echo "$1" >"$state_file"; }
+
+if ((reset)) || [[ -z $previous ]]; then
+    save_state "$latest"
+    printf 'baseline: %s\nasahi-tag: %s\n' "$latest" "$asahi_tag"
+elif tag_lt "$previous" "$latest"; then
+    save_state "$latest"
+    printf 'updated: %s -> %s\nasahi-tag: %s\n' "$previous" "$latest" "$asahi_tag"
+    exit "$UPDATE_AVAILABLE"
+else
+    printf 'current: %s\nasahi-tag: %s\n' "$latest" "$asahi_tag"
+fi

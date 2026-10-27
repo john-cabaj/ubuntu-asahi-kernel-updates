@@ -1,0 +1,14 @@
+# Mutable operational state (see README)
+.state/
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# Local kernel trees / clones created by tooling
+linux/
+*.orig
+*.rej
