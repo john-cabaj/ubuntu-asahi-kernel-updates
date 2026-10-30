@@ -60,13 +60,15 @@ git ls-remote --tags $U 'refs/tags/Ubuntu-asahi-arm-*' |
 
 ## 4. Compare kernel bases first
 
-- `UBUNTU_BASE` > `ASAHI_BASE`: **Ubuntu ahead. Forbidden. Stop and report both
-  versions.** Never update (AGENTS.md hard rule).
-- `UBUNTU_BASE` < `ASAHI_BASE`: **Ubuntu behind.** Needs packaging changes, not
-  cherry-picks. Stop and report.
-- Equal: continue.
+- `UBUNTU_BASE` > `ASAHI_BASE`: **Ubuntu ahead** (AGENTS.md case 3). The base
+  stays as is; only patches that cherry-pick cleanly may be accepted. Report
+  both versions. Continue to step 5 to see whether the patch level is newer.
+- `UBUNTU_BASE` < `ASAHI_BASE`: **Ubuntu behind** (AGENTS.md case 2). Needs the
+  base brought up first, not just cherry-picks. Report both versions and stop
+  before pushing or publishing anything.
+- Equal: continue (AGENTS.md case 1).
 
-## 5. Compare patch level (same base only)
+## 5. Compare patch level (same base or Ubuntu ahead)
 
 Latest Asahi tag Ubuntu has ported, on the branch:
 
@@ -79,10 +81,11 @@ This is `LATEST_PORTED`. If none is found, treat it as none.
 
 - `ASAHI_TAG` is not newer than `LATEST_PORTED`: **no new release.** Ubuntu may
   list tags newer than Fedora's; that is not an error.
-- `ASAHI_TAG` is newer, or nothing is ported: **new release**, the same-base
-  cherry-pick case.
+- `ASAHI_TAG` is newer, or nothing is ported: **new release**. Same base is the
+  cherry-pick case; Ubuntu ahead is the clean-cherry-pick-only case.
 
 ## Report
 
 Give: Fedora tag, Asahi tag, Ubuntu tag, bases, latest ported, and the
-result (no new release / new release / stop: ahead / stop: behind / error).
+result (no new release / new release / ahead: clean picks only / stop: behind /
+error).
