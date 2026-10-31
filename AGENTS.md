@@ -8,8 +8,13 @@ tools and layout.
 ### Never move the Ubuntu Asahi kernel base past the Asahi Linux kernel base
 
 Updating the Ubuntu Asahi tree must never raise its kernel base (X.Y) above the
-base of the Asahi Linux upstream tag being ported. Fedora Asahi tags are the
-ceiling: never port an Asahi Linux tag newer than the newest Fedora Asahi tag.
+base of the Asahi Linux upstream tag being ported.
+
+TEMPORARY (user-approved): the Fedora Asahi ceiling is suspended. Asahi Linux
+tags newer than the newest Fedora Asahi tag may be ported, but only when the
+tag has the same kernel base (X.Y) as the Ubuntu Asahi tree (case 1). Restore
+the original rule when this exploration ends: Fedora Asahi tags are the
+ceiling, never port an Asahi Linux tag newer than the newest Fedora Asahi tag.
 
 - Never rebase, merge, or otherwise move the Ubuntu tree to a newer kernel base
   than the Asahi Linux tag's base.
@@ -24,6 +29,19 @@ Asahi Linux tag:
 
 1. **Same base:** cherry-pick the latest Asahi patches onto the Ubuntu tree.
    This is the case currently being developed.
+   - Find the delta by patch-id, not commit id (Asahi rebases): compare
+     `git patch-id --stable` of `vX.Y.Z..old-tag` and `vX.Y.Z..new-tag`
+     (non-merge). Check both new patches and patches dropped from the stack;
+     a dropped patch cannot be cherry-picked, so report it for a decision.
+   - Cherry-pick the new patches oldest first with `-x` and the provenance URL.
+     Keep `fixup!` commits as separate commits, as Ubuntu already does.
+   - Verify by diffing only the touched files against the new Asahi tag; the
+     diff should be empty.
+   - Add the `Asahi patchset <tag>` marker (`debian.asahi-arm/ubuntu-asahi`)
+     last, and only if the tag's stable level (X.Y.Z) matches the Ubuntu
+     tree's. If the tag is on a newer stable, report it instead of claiming
+     the port.
+   - Set the git identity via `GIT_AUTHOR_*`/`GIT_COMMITTER_*` in every call.
 2. **Ubuntu behind:** bring Ubuntu Asahi up to the Asahi Linux base, then
    proceed as in case 1.
    - If a newer Ubuntu release contains a tree at the target base, start from
