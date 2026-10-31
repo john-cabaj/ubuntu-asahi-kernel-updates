@@ -12,6 +12,12 @@ BASE is the Ubuntu commit just before the Asahi stack, on the *target* kernel ba
 (e.g. an Ubuntu generic `UBUNTU: Ubuntu-7.2.0-5.5` commit at 7.2.12), not the tip of
 an older-base Asahi branch. Check `Makefile` VERSION/PATCHLEVEL of BASE.
 
+For a stable-only gap (same X.Y, e.g. 7.2.12 to 7.2.14), Asahi rebases its stack on
+each stable tag, so do the same. Take the in-tree Ubuntu base commit (the
+`UBUNTU: Ubuntu-X.Y.0-N.M` commit below the stack, not the generic tag, which can be on a
+different SUBLEVEL), merge the stable tag into it on a scratch branch (use
+`git merge-tree --write-tree` first to see conflicts), and use that merge as BASE.
+
 ## Running
 ```sh
 export GIT_AUTHOR_NAME=.. GIT_AUTHOR_EMAIL=.. GIT_COMMITTER_NAME=.. GIT_COMMITTER_EMAIL=..
@@ -35,6 +41,16 @@ resolved pick is skipped; a pick that cannot finish prints `STOP`.
 Enabled (`rerere.autoUpdate`); cache in `$UBUNTU_REPO/.git/rr-cache`. A recorded
 resolution is replayed silently, so a wrong one propagates. If one is wrong, delete its
 `rr-cache/<id>` dir and re-resolve. A fresh worktree should then run with no STOPs.
+
+## Verifying and the Ubuntu layer
+- Diff only the files in `LINUX_TAG..ASAHI_TAG` against the Asahi tag. Compare with the
+  same diff for the previous port (old tree vs old tag): that is the baseline of expected
+  differences (Ubuntu base code, newer upstream). Only new differences need attention.
+- The replay carries Asahi commits only. Ubuntu's own commits (debian.asahi-arm packaging,
+  config, SAUCE such as the rust-io merge-resolution commit) are layered afterwards;
+  reuse the earlier SAUCE commits by cherry-pick when merge review shows the same hunks.
+- Merge review: `git diff-tree --cc -p` shows only real resolution hunks; a merge listed by
+  the script can have none. Files that already equal the Asahi tag need nothing.
 
 ## Before calling it done
 - Build arm64 with the asahi-arm config, Rust enabled; fix or report failures.
