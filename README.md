@@ -22,14 +22,14 @@ The Fedora Asahi tag is the ceiling. Only the AsahiLinux/linux tag matching the
 newest Fedora tag (found by comparing commit ids) is considered; newer upstream
 Asahi tags published before Fedora are never candidates.
 
-The skill compares the kernel base (X.Y) of the latest Ubuntu Asahi tag with the
-base of that gated Asahi tag (see `AGENTS.md`):
+The skill compares the kernel version (X.Y.Z, including the stable level) of the
+Ubuntu Asahi branch with that of the Asahi tag (see `AGENTS.md`):
 
-- Ubuntu base **behind**: stop. Needs packaging changes (case 3).
-- Ubuntu base **ahead**: stop. Forbidden (case 2).
-- **Same** base: a new release exists when the gated Asahi tag is more recent
+- Ubuntu **behind** (base or only stable level): stop (case 2).
+- Ubuntu **ahead**: only clean cherry-picks (case 3).
+- **Same** version: a new release exists when the Asahi tag is more recent
   than the latest Asahi tag listed in `debian.asahi-arm/ubuntu-asahi` on the
-  Ubuntu Asahi branch. Equal or older is not new.
+  Ubuntu Asahi branch. Equal or older is not new (case 1).
 
 Sources:
 

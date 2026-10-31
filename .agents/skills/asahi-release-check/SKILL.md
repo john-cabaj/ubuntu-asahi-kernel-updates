@@ -10,7 +10,7 @@ Do not use blog posts or progress reports.
 Report an error instead of guessing if any step fails or returns nothing.
 
 Compare versions numerically, never as strings: turn `asahi-7.2.11-1` into
-`7.2.11.1` and compare with `sort -V`. Kernel base is the first two fields (X.Y).
+`7.2.11.1` and compare with `sort -V`. Kernel base is the first two fields (X.Y); the version is the first three (X.Y.Z).
 
 ```sh
 F=https://gitlab.com/fedora-asahi/kernel-asahi.git
@@ -58,17 +58,28 @@ git ls-remote --tags $U 'refs/tags/Ubuntu-asahi-arm-*' |
 `7.2`. The branch is `asahi-arm-UBUNTU_BASE` (confirm it exists with
 `git ls-remote --heads $U asahi-arm-UBUNTU_BASE`).
 
-## 4. Compare kernel bases first
+## 4. Compare kernel versions (X.Y.Z)
 
-- `UBUNTU_BASE` > `ASAHI_BASE`: **Ubuntu ahead** (AGENTS.md case 3). The base
+The Ubuntu tag's `7.2.0` is the Ubuntu version, not the stable level. Take
+`UBUNTU_VER` from the branch Makefile (`VERSION.PATCHLEVEL.SUBLEVEL`):
+
+```sh
+curl -fsSL "$U/plain/Makefile?h=asahi-arm-UBUNTU_BASE" |
+  awk '/^(VERSION|PATCHLEVEL|SUBLEVEL) =/{v=v (v?".":"") $3} /^EXTRAVERSION/{exit} END{print v}'
+```
+
+`ASAHI_VER` is X.Y.Z of `ASAHI_TAG` (e.g. `asahi-7.2.14-1` gives `7.2.14`).
+Compare numerically with `sort -V`:
+
+- `UBUNTU_VER` > `ASAHI_VER`: **Ubuntu ahead** (AGENTS.md case 3). The base
   stays as is; only patches that cherry-pick cleanly may be accepted. Report
   both versions. Continue to step 5 to see whether the patch level is newer.
-- `UBUNTU_BASE` < `ASAHI_BASE`: **Ubuntu behind** (AGENTS.md case 2). Needs the
-  base brought up first, not just cherry-picks. Report both versions and stop
-  before pushing or publishing anything.
+- `UBUNTU_VER` < `ASAHI_VER`: **Ubuntu behind** (AGENTS.md case 2), whether the
+  gap is the base (X.Y) or only the stable level (Z). Report both versions and
+  stop before pushing or publishing anything.
 - Equal: continue (AGENTS.md case 1).
 
-## 5. Compare patch level (same base or Ubuntu ahead)
+## 5. Compare patch level (same version or Ubuntu ahead)
 
 Latest Asahi tag Ubuntu has ported, on the branch:
 
@@ -81,11 +92,11 @@ This is `LATEST_PORTED`. If none is found, treat it as none.
 
 - `ASAHI_TAG` is not newer than `LATEST_PORTED`: **no new release.** Ubuntu may
   list tags newer than Fedora's; that is not an error.
-- `ASAHI_TAG` is newer, or nothing is ported: **new release**. Same base is the
+- `ASAHI_TAG` is newer, or nothing is ported: **new release**. Same version is the
   cherry-pick case; Ubuntu ahead is the clean-cherry-pick-only case.
 
 ## Report
 
-Give: Fedora tag, Asahi tag, Ubuntu tag, bases, latest ported, and the
+Give: Fedora tag, Asahi tag, Ubuntu tag, versions, latest ported, and the
 result (no new release / new release / ahead: clean picks only / stop: behind /
 error).

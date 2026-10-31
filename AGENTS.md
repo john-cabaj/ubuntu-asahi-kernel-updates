@@ -24,10 +24,10 @@ ceiling, never port an Asahi Linux tag newer than the newest Fedora Asahi tag.
 
 ## Update cases
 
-Compare the kernel base (X.Y) of the Ubuntu Asahi tree with that of the new
-Asahi Linux tag:
+Compare the full kernel version (X.Y.Z, including the stable level) of the
+Ubuntu Asahi tree with that of the new Asahi Linux tag, numerically:
 
-1. **Same base:** cherry-pick the latest Asahi patches onto the Ubuntu tree.
+1. **Same version (X.Y.Z):** cherry-pick the latest Asahi patches onto the Ubuntu tree.
    This is the case currently being developed.
    - Find the delta by patch-id, not commit id (Asahi rebases): compare
      `git patch-id --stable` of `vX.Y.Z..old-tag` and `vX.Y.Z..new-tag`
@@ -38,19 +38,19 @@ Asahi Linux tag:
    - Verify by diffing only the touched files against the new Asahi tag; the
      diff should be empty.
    - Add the `Asahi patchset <tag>` marker (`debian.asahi-arm/ubuntu-asahi`)
-     last, and only if the tag's stable level (X.Y.Z) matches the Ubuntu
-     tree's. If the tag is on a newer stable, report it instead of claiming
-     the port.
+     last.
    - Set the git identity via `GIT_AUTHOR_*`/`GIT_COMMITTER_*` in every call.
-2. **Ubuntu behind:** bring Ubuntu Asahi up to the Asahi Linux base, then
-   proceed as in case 1.
+2. **Ubuntu behind:** Ubuntu's X.Y.Z is lower than the tag's, whether the gap
+   is a kernel base (X.Y) or only the stable level (Z). Bring Ubuntu Asahi up
+   to the Asahi Linux version, then proceed as in case 1.
    - If a newer Ubuntu release contains a tree at the target base, start from
      that tree.
    - Otherwise, move the base forward on top of the current Ubuntu Asahi tree.
-   - Never go past the Asahi Linux base.
+   - Never go past the Asahi Linux base (X.Y); a stable-only gap (same X.Y)
+     is closed by moving the stable level forward, never past the tag's.
    - Stop and report before pushing or publishing anything. [Open: approval
      and packaging details (debian.*, ABI, changelog) are not yet specified.]
-3. **Ubuntu ahead:** the base stays as it is. Try to apply the latest Asahi
+3. **Ubuntu ahead:** (higher X.Y.Z) the base stays as it is. Try to apply the latest Asahi
    Linux patchset, but accept only patches that resolve extremely easily.
    - Accept a patch only if `git cherry-pick` applies it cleanly, with no
      conflicts, no fuzz, and no manual edits.
