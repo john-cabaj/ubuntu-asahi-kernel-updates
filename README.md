@@ -11,6 +11,11 @@ releases, which are the gate for considering an Ubuntu update.
   that checks for a new release using only `git` and `curl`. There are no
   scripts and no local state.
 
+- `.agents/skills/asahi-port/SKILL.md`: workflow and rules for porting the stack.
+- `.agents/skills/asahi-merge-review/SKILL.md`: carrying over merge-only changes.
+- `tools/asahi-port.sh`: replays the Asahi stack with rerere, stall protection and
+  merge-resolution reporting. `tools/conflict-side.py`: pick a side in conflict hunks.
+
 ## Release Check
 
 The Fedora Asahi tag is the ceiling. Only the AsahiLinux/linux tag matching the
