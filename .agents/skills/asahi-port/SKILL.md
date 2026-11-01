@@ -13,14 +13,13 @@ ones with `-x` and the provenance URL, diff the touched files against the new ta
 marker last. A stable gap or new base: `tools/asahi-rebuild.sh` (below).
 
 ## Choosing BASE
+
 BASE is the Ubuntu commit just before the Asahi stack (packaging included), on the
 *target* kernel base: the packaging tip after the rebase described below, not the tip of
 an older-base Asahi branch. Check `Makefile` VERSION/PATCHLEVEL of BASE.
 
-Layers of an Ubuntu Asahi branch, bottom to top: Linux base + stable catchup (generic
-Ubuntu `UBUNTU: Ubuntu-X.Y.0-N.M`), the `debian.asahi-arm` packaging commits, the Asahi
-stack, Ubuntu's top commits (SAUCE, the Asahi config enablement commit), the marker last. The Asahi
-stack goes above the packaging so the packaging shows the included commits properly.
+The branch layers (generic Ubuntu base, packaging, Asahi stack, top commits, marker) are
+described in AGENTS.md. A generic base commit is subject `UBUNTU: Ubuntu-X.Y.0-N.M`.
 
 For a stable gap or large rebase (e.g. 7.2.12 to 7.2.14), run `tools/asahi-rebuild.sh`. It
 starts from the existing Ubuntu Asahi branch, drops only the old Asahi stack, and replays
@@ -47,13 +46,15 @@ It finds the layers itself, prints a few lines, and on a stop says what to resol
    `new-only:` files show where). `KEEP_TOP=1` carries them instead.
 5. Verifies: missing non-stack commits (by subject) and stack files differing from the
    Asahi tag, against the old branch's baseline; `new-only:` should be empty.
-Tested on asahi-arm-7.2 to asahi-7.2.14-1 (~4 min): with `KEEP_TOP=1` the tree was
-identical to the hand-built branch; by default `new-only:` listed `rust/kernel/drm/gem/shmem.rs`
-(the rust-io fixup, 93 lines), which merge review must regenerate.
-Conflicts in the replay need hand resolution (skill `asahi-conflicts`). A small same-version delta
-needs none of this.
+Example (asahi-arm-7.2 to asahi-7.2.14-1, about 4 minutes): with `KEEP_TOP=1` the tree was
+identical to the hand-built branch. By default `new-only:` listed
+`rust/kernel/drm/gem/shmem.rs` (the rust-io fixup), which merge review must regenerate.
+
+Replay conflicts need hand resolution (skill `asahi-conflicts`). A small same-version
+delta needs none of this.
 
 ## Pitfalls seen
+
 - Wrong BASE is the main failure. The generic tag (`Ubuntu-7.2.0-5.5`) can sit on a
   different SUBLEVEL than the tree; use the in-tree commit, and the packaging tip for
   `asahi-port.sh`. A missing `debian.asahi-arm/ubuntu-asahi` at BASE means BASE is wrong.
@@ -70,6 +71,7 @@ needs none of this.
   any top commits (`KEEP_TOP=1`) and keeps the marker last.
 
 ## Running
+
 ```sh
 export GIT_AUTHOR_NAME=.. GIT_AUTHOR_EMAIL=.. GIT_COMMITTER_NAME=.. GIT_COMMITTER_EMAIL=..
 UBUNTU_REPO=.. BASE=.. LINUX_TAG=v7.2.12 ASAHI_TAG=asahi-7.2.12-2 WORKTREE=/tmp/x BRANCH=asahi-port \
@@ -78,6 +80,7 @@ UBUNTU_REPO=.. BASE=.. LINUX_TAG=v7.2.12 ASAHI_TAG=asahi-7.2.12-2 WORKTREE=/tmp/
 It stops at each conflict (`STOP`): load skill `asahi-conflicts`, resolve, `git add`, re-run.
 
 ## Marker (last step)
+
 After the replay, the script commits `Asahi patchset $ASAHI_TAG`, updating
 `debian.asahi-arm/ubuntu-asahi` to `<Ubuntu base tag> [+ vX.Y.Z stable] = <tag> (<date>)`.
 The date is today (override with `DATE`); the base tag comes from the `UBUNTU: Ubuntu-X`
@@ -86,6 +89,7 @@ tag's. It is skipped if a pick is still pending, and if `debian.asahi-arm/ubuntu
 absent (BASE has no packaging layer, which means BASE is wrong; see Layers).
 
 ## Verifying and the top layer
+
 - Diff only the files in `LINUX_TAG..ASAHI_TAG` against the Asahi tag. Compare with the
   same diff for the previous port (old tree vs old tag): that is the baseline of expected
   differences (Ubuntu base code, newer upstream). Only new differences need attention.
@@ -97,6 +101,7 @@ absent (BASE has no packaging layer, which means BASE is wrong; see Layers).
   the script can have none. Files that already equal the Asahi tag need nothing.
 
 ## Before calling it done
+
 - Build arm64 with the asahi-arm config, Rust enabled; fix or report failures.
 - Run `tools/asahi-review.sh` on the new range and report the unreviewed backports.
 - Report what was not built or tested, the skipped (empty) picks, every conflict with

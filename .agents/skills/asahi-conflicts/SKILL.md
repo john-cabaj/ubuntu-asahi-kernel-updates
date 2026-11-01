@@ -8,6 +8,7 @@ description: Use when tools/asahi-port.sh or tools/asahi-rebuild.sh prints STOP 
 Only needed when a replay stops. A clean run never loads this.
 
 ## Resolving
+
 The script prints `STOP <sha>: conflict in: <files>`. Resolve (`tools/conflict-side.py
 ours|theirs|both FILE` for whole-file side picks, or edit), `git add`, then re-run the
 same command with the same env. It never loops: an empty resolved pick is skipped (and
@@ -26,11 +27,13 @@ remembered); a pick that cannot finish prints `STOP`.
   not obvious, ask the user; do not guess.
 
 ## rerere
+
 Enabled (`rerere.autoUpdate`); cache in `$UBUNTU_REPO/.git/rr-cache`. A recorded
 resolution is replayed silently, so a wrong one propagates. If one is wrong, delete its
 `rr-cache/<id>` dir and re-resolve. A fresh worktree should then run with no STOPs.
 
 ## Review afterwards
+
 `tools/asahi-review.sh [--check] [RANGE]` lists the commits still carrying the unreviewed
 note, each with the `git range-diff` command that shows how it differs from the Asahi
 original (`--check` exits 1 if any remain). A human reviews each, then replaces the note
@@ -40,5 +43,6 @@ work that person has reviewed), and never sign off yourself.
 Do not stop a port to ask for review: finish it, then report the list (below).
 
 ## Report
+
 State plainly that some commits did not cherry-pick cleanly and were backported, and need
 the user's review. List each (hash, subject, file, resolution, why) from `asahi-review.sh`.

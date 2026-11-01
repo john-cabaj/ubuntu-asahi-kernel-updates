@@ -12,6 +12,7 @@ inside a merge's conflict resolution ("evil" hunks) are lost. Examples seen: add
 `IoBase` after a rust-io merge.
 
 ## Procedure
+
 1. Take the script's end-of-run list (or `git rev-list --merges LINUX_TAG..ASAHI_TAG`).
 2. For each merge: `git diff-tree --cc -p <merge>` in the Asahi repo. Only lines that
    differ from every parent are evil hunks.
@@ -28,12 +29,14 @@ inside a merge's conflict resolution ("evil" hunks) are lost. Examples seen: add
    by those hunks (check with `diff`).
 
 ## Per-version
+
 These SAUCE commits fix one patchset version and are not carried to the next port
 (`asahi-rebuild.sh` drops them). Redo the review for each new tag; `asahi-rebuild.sh`'s
 `new-only:` files are the starting point. An earlier commit can be a template if the
 hunks are the same.
 
 ## Honesty
+
 The merge commit is the only source for these hunks, so copying them is the method,
 but it is not independent verification. Say so in the report, and list any merge you
 reviewed but left unapplied, with the reason.

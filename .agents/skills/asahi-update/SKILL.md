@@ -32,8 +32,13 @@ the order of work; each step names the skill or tool that holds the detail.
    `fdr clean updateconfigs`, `close`. Needs `cranky`; if absent, stop and say so.
 6. **Build/test:** arm64, asahi-arm config, Rust on (a dedicated build skill is not
    written yet). If not done, say so; never call an unbuilt tree verified.
-7. **Report and stop:** versions, tags, commits added, skipped/dropped patches, conflicts
-   and resolutions, merges reviewed, config options added or left for a decision, the unreviewed backports (`tools/asahi-review.sh
-   RANGE`; state that these did not cherry-pick cleanly and need the user's review; the user
-   signs them off per commit, you never do; do not stop the port to ask), what was not run. Publishing (`link-tb`, tags,
-   `push-refs`, `dput-sources`) is the user's; never push.
+7. **Report and stop:** report
+   - versions and tags, commits added, skipped and dropped patches;
+   - conflicts and their resolutions, merges reviewed;
+   - config options added or left for a decision;
+   - the unreviewed backports (`tools/asahi-review.sh RANGE`): say they did not
+     cherry-pick cleanly and need the user's review. The user signs them off per commit,
+     you never do, and you do not stop the port to ask;
+   - what was not run.
+
+   Publishing (`link-tb`, tags, `push-refs`, `dput-sources`) is the user's; never push.

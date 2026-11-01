@@ -9,3 +9,4 @@
 linux/
 *.orig
 *.rej
+__pycache__/

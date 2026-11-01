@@ -10,6 +10,7 @@ new Ubuntu release (that also needs "Moving to ..." packaging, variants, update.
 getabis); stop and report instead.
 
 ## Preconditions
+
 - The port is done on a branch: Asahi commits, merge-review SAUCE commits, then the
   `Asahi patchset <tag>` marker (`debian.asahi-arm/ubuntu-asahi`) as the last commit.
 - `cranky` and its chroot are available (`cranky chroot create-session RELEASE:linux`).
@@ -17,12 +18,13 @@ getabis); stop and report instead.
 - Set `GIT_AUTHOR_*`/`GIT_COMMITTER_*` in every call. Never push (AGENTS.md).
 
 ## Asahi config changes (before `cranky open`)
+
 Fedora Asahi's configs are the source. They are one file per option under `redhat/configs/`,
 on the Fedora branch only (the `asahi-*` tag commit has no `redhat/`). Fedora releases come
 in pairs: `kernel-X.Y.Z-0` (plain ARK) and `kernel-X.Y.Z-N.asahi` (ARK plus the Asahi config
-commits); the options that differ are the Asahi layer (45 for 7.2.12). Ubuntu mirrors it by
+commits); the options that differ are the Asahi layer (45 options for 7.2.12). Ubuntu mirrors it by
 hand in `debian.asahi-arm/config/annotations`, "Asahi enablement config" section, as
-```
+```text
 CONFIG_X                                        policy<{'arm64': 'm'}>
 CONFIG_X                                        note<'{Asahi enablement config}'>
 ```
@@ -41,10 +43,9 @@ tree. The release defaults to the newest `.asahi` tag in the clone (it contains 
 ceiling tag). Statuses:
 - `add` (Fedora y/m, Ubuntu has no policy): run again with `--apply --commit`. The commit
   `UBUNTU: [Config] asahi-arm: Enable Asahi options from Fedora <release>` goes ABOVE the Asahi
-  stack, after any SAUCE and before the marker, which stays last (rebuilding later moves it
+  stack, after any SAUCE and before the marker, which stays last (a later rebuild moves it
   below the next stack with the rest of the finished release). `asahi-rebuild.sh` does this
-  itself when `FEDORA_CLONE=/tmp/fed` is set. Verified: the entries match your USB4, Apple
-  Video Decoder and sn201202x commits exactly; the rebuild step inserts below the marker.
+  itself when `FEDORA_CLONE=/tmp/fed` is set.
 - `differs`, `review`: do not change; report Fedora's and Ubuntu's values for the user.
   A different policy can be deliberate (e.g. `DRM_NOVA`: Fedora `n`, Ubuntu `m`);
   `review` is a Fedora distro choice (disable, string, number), not copied.
@@ -54,6 +55,7 @@ ceiling tag). Statuses:
 Nothing to do when there are no `add` rows.
 
 ## Steps
+
 Run from the kernel tree, in this order:
 1. `cranky open`: "UBUNTU: Start new release", an UNRELEASED changelog entry with the
    bumped version.
@@ -66,14 +68,16 @@ Run from the kernel tree, in this order:
    dependency config changes, commit those (reference the original bug) and re-run.
    Add no commits after `close` without re-running it.
 
-Expected commit order on the branch (matches 7.0.0-1002.2 and 7.2.0-1001.1):
+Expected commit order on the branch (as in 7.0.0-1002.2 and 7.2.0-1001.1), bottom to top:
 marker, Start new release, [Config] updateconfigs (optional), closing commit.
 
 ## Not in this skill
+
 `cranky link-tb` (makes public changes), `test-build`, `update-dependents`, `tags`,
 `build-sources`, `push-refs`, `dput-sources`: leave to the user. `update-dkms-versions`
 is not needed (no `dkms-versions` file in debian.asahi-arm).
 
 ## Report
+
 Version and ABI from the changelog, the commits added, any master changes reviewed, and
 anything not run. Do not describe an unbuilt kernel as tested.
