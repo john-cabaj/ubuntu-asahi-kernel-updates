@@ -19,13 +19,22 @@ the newest Fedora Asahi tag.
 - This rule is not to be worked around, overridden, or relaxed by an agent, even
   if a task seems to require it. Only the user may change it, by editing this file.
 
+## Branch layers
+
+Ubuntu Asahi branches are layered, bottom to top: Linux base + stable catchup (generic
+Ubuntu tree), the `debian.asahi-arm` packaging commits (including earlier releases and
+`Asahi patchset` markers), the Asahi port, then Ubuntu commits that edit stack files
+(e.g. SAUCE), the Asahi config enablement commit, and the new marker last. The Asahi port goes on top of the packaging so the
+packaging shows the included commits properly. Upstream Asahi only stacks its patches
+on the Linux base; the packaging layering is Ubuntu's.
+
 ## Update cases
 
 Compare the full kernel version (X.Y.Z, including the stable level) of the
 Ubuntu Asahi tree with that of the new Asahi Linux tag, numerically:
 
 1. **Same version (X.Y.Z):** cherry-pick the latest Asahi patches onto the Ubuntu tree.
-   This is the case currently being developed.
+   A small delta goes on top of the last Ubuntu Asahi release.
    - Find the delta by patch-id, not commit id (Asahi rebases): compare
      `git patch-id --stable` of `vX.Y.Z..old-tag` and `vX.Y.Z..new-tag`
      (non-merge). Check both new patches and patches dropped from the stack;
@@ -42,15 +51,22 @@ Ubuntu Asahi tree with that of the new Asahi Linux tag, numerically:
    to the Asahi Linux version, then proceed as in case 1.
    - If a newer Ubuntu release contains a tree at the target base, start from
      that tree.
-   - Otherwise, match Asahi, which rebases its stack onto each new stable tag:
-     merge the target stable tag into the in-tree Ubuntu base commit (check its
-     `Makefile` SUBLEVEL; the Ubuntu generic tag can be on a different base),
-     then replay the whole stack with `tools/asahi-port.sh` (see the
-     `asahi-port` skill). Do not merge the stable tag on top of the old stack.
+   - Otherwise, start from the existing Ubuntu Asahi branch. Merge the target
+     stable tag into the generic Ubuntu base commit, rebase the packaging commits
+     onto it (`git rebase --onto NEWBASE OLDBASE PKG_TIP`), and re-apply every
+     other non-Asahi commit below the stack in order (previous releases and
+     `Asahi patchset` markers included). Drop only the old Asahi stack (the
+     contiguous range of cherry-picked Asahi commits), then replay the new
+     stack on top with `tools/asahi-port.sh` (see the `asahi-port` skill). Ubuntu
+     commits that edit stack files (e.g. SAUCE) go above the stack, then the
+     new marker. Do not merge the stable tag on top of the old stack.
    - Never go past the Asahi Linux base (X.Y); a stable-only gap (same X.Y)
      is closed by moving the stable level forward, never past the tag's.
-   - Stop and report before pushing or publishing anything. [Open: approval
-     and packaging details (debian.*, ABI, changelog) are not yet specified.]
+   - Stop and report before pushing or publishing anything.
+   - Packaging for a same-release update (e.g. resolute to resolute) is the
+     `asahi-crank` skill (`cranky open`, `review-master-changes`,
+     `fdr clean updateconfigs`, `close`). [Open: a switch to a new Ubuntu release
+     (extra packaging, variants, update.conf, getabis) is not yet specified.]
 3. **Ubuntu ahead:** (higher X.Y.Z) the base stays as it is. Try to apply the latest Asahi
    Linux patchset, but accept only patches that resolve extremely easily.
    - Accept a patch only if `git cherry-pick` applies it cleanly, with no

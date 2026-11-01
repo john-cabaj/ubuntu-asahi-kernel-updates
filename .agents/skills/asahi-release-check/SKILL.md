@@ -5,98 +5,21 @@ description: Use when asked whether a new Asahi Linux release is available, whet
 
 # Asahi release check
 
-Uses only `git ls-remote` and `curl`; no local clone or state is needed.
-Do not use blog posts or progress reports.
-Report an error instead of guessing if any step fails or returns nothing.
+Run `tools/asahi-release-check.sh` (about 20 s; needs only `git ls-remote` and `curl`, no
+clone). It prints `key=value` lines and a final `result=` line; it exits 1 with
+`result=error: ...` on any failure. Report an error; do not guess or use blog posts.
 
-Compare versions numerically, never as strings: turn `asahi-7.2.11-1` into
-`7.2.11.1` and compare with `sort -V`. Kernel base is the first two fields (X.Y); the version is the first three (X.Y.Z).
+What it does (Fedora tag is the ceiling, AGENTS.md):
+1. Newest Fedora Asahi tag (`asahi-X.Y.Z-N` only; ignore `v*`, `kernel-*`).
+2. The AsahiLinux/linux tag at the same commit (prefer the same name): `asahi_tag`. Newer
+   upstream tags are printed as `newer_upstream_not_eligible`, never candidates.
+3. Latest `Ubuntu-asahi-arm-*` tag, branch `asahi-arm-X.Y`, and its Makefile X.Y.Z.
+4. Compares full versions numerically (never as strings): Ubuntu `<` Asahi is **behind**
+   (case 2, `tools/asahi-rebuild.sh`, stop before publishing); `=` same (case 1); `>` ahead
+   (case 3, clean cherry-picks only).
+5. Same/ahead: compares `asahi_tag` with the latest tag in `debian.asahi-arm/ubuntu-asahi`
+   (`latest_ported`); not newer means no new release. Ubuntu may list tags newer than
+   Fedora's; that is not an error.
 
-```sh
-F=https://gitlab.com/fedora-asahi/kernel-asahi.git
-A=https://github.com/AsahiLinux/linux.git
-U=https://git.launchpad.net/~ubuntu-asahi/+git/linux-asahi-arm
-```
-
-## 1. Newest Fedora Asahi tag (the ceiling)
-
-Only tags matching `^asahi-[0-9]+(\.[0-9]+)+-[0-9]+$` count. Ignore `v*` and
-`kernel-*` tags. Annotated tags list twice; the `^{}` line holds the commit.
-
-```sh
-git ls-remote --tags $F 'refs/tags/asahi-*' |
-  awk -F'\t' '{n=substr($2,11); sub(/\^\{\}$/,"",n); c[n]=$1} END{for(n in c) print n, c[n]}' |
-  grep -E '^asahi-[0-9]+(\.[0-9]+)+-[0-9]+ ' | sort -k1,1V | tail -1
-```
-
-Output: `FEDORA_TAG FEDORA_COMMIT`. This is the newest Fedora tag.
-
-## 2. Matching AsahiLinux/linux tag
-
-Find the release tag at the same commit. If several, prefer one named the same
-as `FEDORA_TAG`, else the first. No match: stop and report an error. Newer
-AsahiLinux/linux tags published before Fedora are never candidates.
-
-```sh
-git ls-remote --tags $A 'refs/tags/asahi-*' | grep FEDORA_COMMIT
-```
-
-Output is e.g. `<commit> refs/tags/asahi-7.2.11-1^{}`. The result is `ASAHI_TAG`.
-Its kernel base is `ASAHI_BASE`, e.g. `7.2`.
-
-## 3. Latest Ubuntu Asahi tag and branch
-
-Latest Ubuntu tag (highest `Ubuntu-asahi-arm-X.Y.Z-ABI.N`; ignore
-`Ubuntu-apple-arm-*`):
-
-```sh
-git ls-remote --tags $U 'refs/tags/Ubuntu-asahi-arm-*' |
-  awk '{print $2}' | sed 's#refs/tags/##;s/\^{}//' | sort -uV | tail -1
-```
-
-`UBUNTU_BASE` is X.Y from that tag, e.g. `Ubuntu-asahi-arm-7.2.0-1001.1` gives
-`7.2`. The branch is `asahi-arm-UBUNTU_BASE` (confirm it exists with
-`git ls-remote --heads $U asahi-arm-UBUNTU_BASE`).
-
-## 4. Compare kernel versions (X.Y.Z)
-
-The Ubuntu tag's `7.2.0` is the Ubuntu version, not the stable level. Take
-`UBUNTU_VER` from the branch Makefile (`VERSION.PATCHLEVEL.SUBLEVEL`):
-
-```sh
-curl -fsSL "$U/plain/Makefile?h=asahi-arm-UBUNTU_BASE" |
-  awk '/^(VERSION|PATCHLEVEL|SUBLEVEL) =/{v=v (v?".":"") $3} /^EXTRAVERSION/{exit} END{print v}'
-```
-
-`ASAHI_VER` is X.Y.Z of `ASAHI_TAG` (e.g. `asahi-7.2.14-1` gives `7.2.14`).
-Compare numerically with `sort -V`:
-
-- `UBUNTU_VER` > `ASAHI_VER`: **Ubuntu ahead** (AGENTS.md case 3). The base
-  stays as is; only patches that cherry-pick cleanly may be accepted. Report
-  both versions. Continue to step 5 to see whether the patch level is newer.
-- `UBUNTU_VER` < `ASAHI_VER`: **Ubuntu behind** (AGENTS.md case 2), whether the
-  gap is the base (X.Y) or only the stable level (Z). Report both versions and
-  stop before pushing or publishing anything.
-- Equal: continue (AGENTS.md case 1).
-
-## 5. Compare patch level (same version or Ubuntu ahead)
-
-Latest Asahi tag Ubuntu has ported, on the branch:
-
-```sh
-curl -fsSL "$U/plain/debian.asahi-arm/ubuntu-asahi?h=asahi-arm-UBUNTU_BASE" |
-  grep -oE '= asahi-[0-9]+(\.[0-9]+)+-[0-9]+' | sed 's/^= //' | sort -V | tail -1
-```
-
-This is `LATEST_PORTED`. If none is found, treat it as none.
-
-- `ASAHI_TAG` is not newer than `LATEST_PORTED`: **no new release.** Ubuntu may
-  list tags newer than Fedora's; that is not an error.
-- `ASAHI_TAG` is newer, or nothing is ported: **new release**. Same version is the
-  cherry-pick case; Ubuntu ahead is the clean-cherry-pick-only case.
-
-## Report
-
-Give: Fedora tag, Asahi tag, Ubuntu tag, versions, latest ported, and the
-result (no new release / new release / ahead: clean picks only / stop: behind /
-error).
+Report the printed fields: Fedora tag, Asahi tag, Ubuntu tag, versions, latest ported,
+and the result. For a same-version new release, get the delta with `tools/asahi-delta.sh`.

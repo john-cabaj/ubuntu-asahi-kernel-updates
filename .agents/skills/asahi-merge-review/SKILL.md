@@ -27,6 +27,12 @@ inside a merge's conflict resolution ("evil" hunks) are lost. Examples seen: add
 5. Apply the hunks, not a whole file from the Asahi tag, unless the file differs only
    by those hunks (check with `diff`).
 
+## Per-version
+These SAUCE commits fix one patchset version and are not carried to the next port
+(`asahi-rebuild.sh` drops them). Redo the review for each new tag; `asahi-rebuild.sh`'s
+`new-only:` files are the starting point. An earlier commit can be a template if the
+hunks are the same.
+
 ## Honesty
 The merge commit is the only source for these hunks, so copying them is the method,
 but it is not independent verification. Say so in the report, and list any merge you
