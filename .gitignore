@@ -10,3 +10,7 @@ linux/
 *.orig
 *.rej
 __pycache__/
+
+# Workshop container config and lock
+.workshop/
+.workshop.lock

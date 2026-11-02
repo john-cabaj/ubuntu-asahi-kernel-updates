@@ -18,6 +18,10 @@ remembered); a pick that cannot finish prints `STOP`.
   independent check, so record why for each one.
 - Keeping Ubuntu's side is right only if Ubuntu already has the equivalent change.
   Check whether incoming comments/docs still apply to the new code before dropping them.
+- When keeping Ubuntu's side, check what the incoming patch adds there (comments, docs,
+  small changes) that still applies; keep those and drop only what Ubuntu already has. A pick
+  that ends up empty is skipped, so dropping everything silently loses the patch's addition
+  (7.2.14: a two-line comment in `nova-core/fsp.rs`).
 - If incoming context has something Ubuntu lacks (e.g. a `+ 'static` bound), find where
   it came from (`git log -S`, then merges) before deciding.
 - Merges are not replayed (`--no-merges`); handle their changes with `asahi-merge-review`.
@@ -31,6 +35,10 @@ remembered); a pick that cannot finish prints `STOP`.
 Enabled (`rerere.autoUpdate`); cache in `$UBUNTU_REPO/.git/rr-cache`. A recorded
 resolution is replayed silently, so a wrong one propagates. If one is wrong, delete its
 `rr-cache/<id>` dir and re-resolve. A fresh worktree should then run with no STOPs.
+
+The cache lives in the Ubuntu repo's `.git`, so it goes with that repo: do not delete, replace
+or re-clone `UBUNTU_REPO` without copying `.git/rr-cache` first. Losing it loses every earlier
+hand resolution, and a redo can then resolve differently (7.2.14: two conflicts did).
 
 ## Review afterwards
 

@@ -17,6 +17,27 @@ Start with the `asahi-update` skill. It routes through the steps below in order:
 
 Nothing here pushes or publishes; that is always left to the user.
 
+## Repo locations
+
+The tools do not discover repositories; each location is passed in. There is no config file.
+
+| What | Example | How it is passed |
+|------|---------|------------------|
+| Ubuntu Asahi tree (`linux-main`) | `~/canonical/kernel/ubuntu/stonking/linux-asahi-arm/linux-main` | `UBUNTU_REPO` (`asahi-port.sh`, `asahi-rebuild.sh`; required), `REPO` (`asahi-delta.sh`, `asahi-review.sh`; default `.`), `--repo` (`asahi-config-check.py`; default `.`) |
+| Asahi Linux clone | `~/asahi` | Not passed. Fetch the tags the port needs into the Ubuntu tree first: `git fetch ~/asahi tag v7.2.14 tag asahi-7.2.14-1` (and the old release's tags for the verify step) |
+| Fedora Asahi clone | `~/fedora-asahi` | `FEDORA_CLONE` (`asahi-rebuild.sh`, optional) or `--fedora` (`asahi-config-check.py`; required) |
+| Worktree for the port | `~/work/asahi-7.2.14` | `WORKTREE` (required) |
+
+Missing required variables stop the tool at once (`${VAR:?}`). `asahi-release-check.sh` needs
+no local repos; it reads the public URLs (`ASAHI_URL`, `FEDORA_URL`, `UBUNTU_URL` override
+them). Example:
+
+```sh
+UBUNTU_REPO=~/canonical/kernel/ubuntu/stonking/linux-asahi-arm/linux-main OLD=asahi-arm-7.2 \
+  LINUX_TAG=v7.2.14 ASAHI_TAG=asahi-7.2.14-1 WORKTREE=~/work/asahi-7.2.14 \
+  BRANCH=asahi-7.2.14-update FEDORA_CLONE=~/fedora-asahi tools/asahi-rebuild.sh
+```
+
 ## Layout
 
 ### Skills (`.agents/skills/<name>/SKILL.md`)

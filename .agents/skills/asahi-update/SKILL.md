@@ -18,6 +18,8 @@ tools), say so in every report. This is the order of work; each step names the s
 2. **Set up:** work on a scratch branch/worktree of the Ubuntu Asahi tree (never the
    published branch). Set `GIT_AUTHOR_*`/`GIT_COMMITTER_*` in every shell call.
    If a needed tag is missing locally: `git fetch URL tag NAME`.
+   Optional backup (the old stack also stays in git on the old branch):
+   `git format-patch -o ~/work/old-stack FIRST^..LAST` over the old Asahi commits.
 3. **Port** (skill `asahi-port`):
    - a. Same version: `REPO=.. tools/asahi-delta.sh OLD NEW`; report dropped patches for a
      decision; cherry-pick the new ones oldest first with `-x` and the URL; diff touched
