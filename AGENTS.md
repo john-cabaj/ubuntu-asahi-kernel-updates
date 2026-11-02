@@ -10,8 +10,8 @@ tools and layout.
 Updating the Ubuntu Asahi tree must never raise its kernel base (X.Y) above the
 base of the Asahi Linux upstream tag being ported.
 
-Fedora Asahi tags are the ceiling: never port an Asahi Linux tag newer than
-the newest Fedora Asahi tag.
+Always target the latest Asahi Linux upstream tag, even if it is newer than the newest
+Fedora Asahi tag. When it is, say so (see "Ahead of Fedora" below).
 
 - Never rebase, merge, or otherwise move the Ubuntu tree to a newer kernel base
   than the Asahi Linux tag's base.
@@ -74,3 +74,10 @@ Ubuntu Asahi tree with that of the new Asahi Linux tag, numerically:
    - Skip every other patch. Do not resolve conflicts or adapt patches.
    - Report all skipped patches and the reason for each.
    - Report both kernel versions.
+
+## Ahead of Fedora
+
+Fedora Asahi tags are informational, not a limit. If the Asahi tag being prepared is newer
+than the newest Fedora Asahi tag (and not at the same commit as any Fedora tag), note it in
+every report and in the final summary: the release is not yet in Fedora Asahi. The tools
+print this as `ahead_of_fedora=yes`.

@@ -28,8 +28,8 @@
 set -u
 : "${UBUNTU_REPO:?}" "${BASE:?}" "${LINUX_TAG:?}" "${ASAHI_TAG:?}" "${WORKTREE:?}"
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
-# Hard rule: never port a tag newer than the newest Fedora Asahi tag (no override).
-check_ceiling "$ASAHI_TAG" "$UBUNTU_REPO" || exit 1
+# Informational: say when the tag is ahead of Fedora Asahi (never blocks).
+note_fedora "$ASAHI_TAG" "$UBUNTU_REPO" >&2
 BRANCH=${BRANCH:-asahi-port}; URL=${URL:-https://github.com/AsahiLinux/linux}
 KEEP_UBUNTU_FILES=${KEEP_UBUNTU_FILES:-}
 NOTE_NAME=${NOTE_NAME:-}
@@ -184,6 +184,7 @@ report() {
   done
   git status -sb | head -3
   echo "applied: $(git rev-list --count "$BASE..HEAD") commits; log: $LOG"
+  note_fedora "$ASAHI_TAG" .
 }
 
 main() {

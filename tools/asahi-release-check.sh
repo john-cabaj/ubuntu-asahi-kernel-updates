@@ -1,9 +1,10 @@
 #!/bin/bash
 # Is there a new Asahi Linux release for Ubuntu Asahi? (see the asahi-release-check skill)
 #
-# Needs only git ls-remote and curl. The Fedora Asahi tag is the ceiling (AGENTS.md): only
-# the AsahiLinux/linux tag at the newest Fedora tag's commit is a candidate; newer upstream
-# tags are reported for information only. Compares full X.Y.Z versions numerically.
+# Needs only git ls-remote and curl. The candidate is the newest AsahiLinux/linux release tag.
+# Fedora Asahi is informational: ahead_of_fedora=yes means the candidate is newer than the
+# newest Fedora Asahi tag (and not at any Fedora tag's commit). Compares full X.Y.Z versions
+# numerically.
 #
 # Prints key=value lines and a final "result=" line; exits 1 with "result=error: ..." on failure.
 # Env (defaults are the public repos): FEDORA_URL ASAHI_URL UBUNTU_URL.
@@ -19,13 +20,15 @@ kernel_ver() {
 }
 
 # --- gather ------------------------------------------------------------------------------
-fedora=$(release_tags "$FEDORA_URL" | tail -1); [ -n "$fedora" ] || err "no Fedora tags"
-FEDORA_TAG=${fedora% *}; FEDORA_COMMIT=${fedora#* }
 asahi_tags=$(release_tags "$ASAHI_URL"); [ -n "$asahi_tags" ] || err "no Asahi tags"
-at_commit=$(awk -v c="$FEDORA_COMMIT" '$2==c{print $1}' <<<"$asahi_tags")
-[ -n "$at_commit" ] || err "no AsahiLinux tag at Fedora commit $FEDORA_COMMIT"
-ASAHI_TAG=$(grep -Fx "$FEDORA_TAG" <<<"$at_commit" || head -1 <<<"$at_commit")   # prefer same name
-NEWEST=$(tail -1 <<<"$asahi_tags" | cut -d' ' -f1)
+ASAHI_TAG=$(tail -1 <<<"$asahi_tags" | cut -d' ' -f1)
+ASAHI_COMMIT=$(tail -1 <<<"$asahi_tags" | cut -d' ' -f2)
+fedora=$(release_tags "$FEDORA_URL" | tail -1)
+FEDORA_TAG=${fedora% *}; FEDORA_COMMIT=${fedora#* }
+# Ahead of Fedora: newer than Fedora's newest tag and not at any Fedora tag's commit.
+if [ -z "$fedora" ]; then AHEAD=unknown
+elif [ "$ASAHI_COMMIT" = "$FEDORA_COMMIT" ] || ! version_gt "$(release_num "$ASAHI_TAG")" "$(release_num "$FEDORA_TAG")"; then AHEAD=no
+else AHEAD=yes; fi
 
 UBUNTU_TAG=$(git ls-remote --tags "$UBUNTU_URL" 'refs/tags/Ubuntu-asahi-arm-*' |
   awk '{print $2}' | sed 's#refs/tags/##;s/\^{}//' | sort -uV | tail -1)
@@ -39,9 +42,9 @@ PORTED=$(curl -fsSL "$UBUNTU_URL/plain/$MARKER_FILE?h=asahi-arm-$UBASE" |
   grep -oE '= asahi-[0-9]+(\.[0-9]+)+-[0-9]+' | sed 's/^= //' | sort -V | tail -1)
 
 # --- report ------------------------------------------------------------------------------
-echo "fedora_tag=$FEDORA_TAG"; echo "asahi_tag=$ASAHI_TAG"; echo "ubuntu_tag=$UBUNTU_TAG"
+echo "fedora_tag=${FEDORA_TAG:-unknown}"; echo "asahi_tag=$ASAHI_TAG"; echo "ubuntu_tag=$UBUNTU_TAG"
+echo "ahead_of_fedora=$AHEAD"
 echo "ubuntu_version=$UBUNTU_VER asahi_version=$ASAHI_VER latest_ported=${PORTED:-none}"
-[ "$NEWEST" = "$ASAHI_TAG" ] || echo "newer_upstream_not_eligible=$NEWEST"
 
 # Is the Asahi tag newer than what Ubuntu has ported (or is nothing ported)?
 newer_than_ported() { [ -z "$PORTED" ] || version_gt "$(release_num "$ASAHI_TAG")" "$(release_num "$PORTED")"; }

@@ -5,9 +5,9 @@ description: Use as the entry point when asked to update Ubuntu Asahi to a new A
 
 # Asahi update
 
-Rules are in AGENTS.md (Fedora ceiling, never pass the Asahi base, never push). The port
-tools enforce the ceiling themselves and refuse a newer tag; do not look for a way round it. This is
-the order of work; each step names the skill or tool that holds the detail.
+Rules are in AGENTS.md (target the latest Asahi tag, never pass the Asahi base, never
+push). If the tag is ahead of Fedora Asahi (`ahead_of_fedora=yes`, also noted by the port
+tools), say so in every report. This is the order of work; each step names the skill or tool that holds the detail.
 
 1. **Check:** `tools/asahi-release-check.sh` (skill `asahi-release-check`). Act on `result=`:
    - `no new release`: report and stop.
@@ -33,7 +33,7 @@ the order of work; each step names the skill or tool that holds the detail.
 6. **Build/test:** arm64, asahi-arm config, Rust on (a dedicated build skill is not
    written yet). If not done, say so; never call an unbuilt tree verified.
 7. **Report and stop:** report
-   - versions and tags, commits added, skipped and dropped patches;
+   - versions and tags, whether the release is ahead of Fedora Asahi, commits added, skipped and dropped patches;
    - conflicts and their resolutions, merges reviewed;
    - config options added or left for a decision;
    - the unreviewed backports (`tools/asahi-review.sh RANGE`): say they did not

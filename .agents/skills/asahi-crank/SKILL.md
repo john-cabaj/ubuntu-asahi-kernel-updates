@@ -39,8 +39,8 @@ tools/asahi-config-check.py --fedora /tmp/fed --repo <ubuntu tree> --ubuntu HEAD
 ```
 Run it with the Asahi stack already on top of the tree (the normal order): the drivers, and
 so the Kconfig symbols, arrive with the stack. It warns if most options are missing from the
-tree. The release defaults to the newest `.asahi` tag in the clone (it contains the Fedora
-ceiling tag). Statuses:
+tree. The release defaults to the newest `.asahi` tag in the clone. If the Asahi tag is ahead of
+Fedora, the config comes from Fedora's latest release; say so. Statuses:
 - `add` (Fedora y/m, Ubuntu has no policy): run again with `--apply --commit`. The commit
   `UBUNTU: [Config] asahi-arm: Enable Asahi options from Fedora <release>` goes ABOVE the Asahi
   stack, after any SAUCE and before the marker, which stays last (a later rebuild moves it

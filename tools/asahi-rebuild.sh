@@ -29,8 +29,8 @@
 set -u
 : "${UBUNTU_REPO:?}" "${OLD:?}" "${LINUX_TAG:?}" "${ASAHI_TAG:?}" "${WORKTREE:?}"
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
-# Hard rule: never port a tag newer than the newest Fedora Asahi tag (no override).
-check_ceiling "$ASAHI_TAG" "$UBUNTU_REPO" || exit 1
+# Informational: say when the tag is ahead of Fedora Asahi (never blocks).
+note_fedora "$ASAHI_TAG" "$UBUNTU_REPO" >&2
 BRANCH=${BRANCH:-asahi-rebuild}; LAYERS=$BRANCH-layers
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 MARK="Asahi patchset $ASAHI_TAG"

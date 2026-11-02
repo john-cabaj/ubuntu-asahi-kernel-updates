@@ -39,7 +39,7 @@ default_identity() {
   export GIT_AUTHOR_NAME=$n GIT_AUTHOR_EMAIL=$e GIT_COMMITTER_NAME=$n GIT_COMMITTER_EMAIL=$e
 }
 
-# --- Fedora ceiling (AGENTS.md hard rule) ---------------------------------------------------
+# --- Fedora Asahi comparison (informational) -----------------------------------------------
 FEDORA_URL=${FEDORA_URL:-https://gitlab.com/fedora-asahi/kernel-asahi.git}
 
 # "name commit" per release tag (asahi-X.Y.Z-N only) of remote $1, oldest first. Annotated tags
@@ -52,18 +52,23 @@ release_tags() {
 # Comparable release number: asahi-7.2.14-1 -> 7.2.14.1.
 release_num() { sed -E 's/^asahi-//; s/-/./' <<<"$1"; }
 
-# Refuse (return 1) to port Asahi tag $1 if it is newer than the newest Fedora Asahi tag. A tag
-# at the same commit as any Fedora tag is allowed whatever its name. Fails closed: if the Fedora
-# tags cannot be read, the ceiling cannot be checked. $2: repo holding $1 (default: cwd).
-check_ceiling() {
+# Print "yes", "no" or "unknown" for: is Asahi tag $1 (in repo $2, default cwd) ahead of Fedora
+# Asahi? Ahead means newer than the newest Fedora tag and not at any Fedora tag's commit.
+# "unknown" if the Fedora tags or the tag cannot be read. Never fails: Fedora is not a limit.
+fedora_ahead() {
   local tag=$1 repo=${2:-.} fed newest commit
-  fed=$(release_tags "$FEDORA_URL")
+  fed=$(release_tags "$FEDORA_URL" 2>/dev/null)
   newest=$(tail -1 <<<"$fed" | cut -d' ' -f1)
-  [ -n "$newest" ] || { echo "STOP: cannot read Fedora Asahi tags; the Fedora ceiling cannot be checked" >&2; return 1; }
-  commit=$(git -C "$repo" rev-parse -q --verify "$tag^{commit}") || { echo "STOP: $tag not found in $repo" >&2; return 1; }
-  awk -v c="$commit" '$2==c{f=1} END{exit !f}' <<<"$fed" && return 0
-  if version_gt "$(release_num "$tag")" "$(release_num "$newest")"; then
-    echo "STOP: $tag is newer than the newest Fedora Asahi tag $newest (AGENTS.md: Fedora tags are the ceiling)" >&2
-    return 1
-  fi
+  commit=$(git -C "$repo" rev-parse -q --verify "$tag^{commit}")
+  { [ -n "$newest" ] && [ -n "$commit" ]; } || { echo unknown; return 0; }
+  if awk -v c="$commit" '$2==c{f=1} END{exit !f}' <<<"$fed"; then echo no
+  elif version_gt "$(release_num "$tag")" "$(release_num "$newest")"; then echo yes
+  else echo no; fi
+}
+# Print a one-line note when Asahi tag $1 is ahead of (or cannot be compared with) Fedora.
+note_fedora() {
+  case $(fedora_ahead "$@") in
+    yes) echo "NOTE: $1 is ahead of Fedora Asahi (not yet released there)" ;;
+    unknown) echo "NOTE: could not compare $1 with Fedora Asahi tags" ;;
+  esac
 }

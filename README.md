@@ -1,7 +1,8 @@
 # Ubuntu Asahi Kernel Updates
 
 Tooling and agent guidance for building Ubuntu kernel trees that carry the upstream
-Asahi Linux patch set. Fedora Asahi releases gate which Asahi tag may be considered.
+Asahi Linux patch set. The newest Asahi Linux tag is always the target; releases ahead of
+Fedora Asahi are flagged in reports.
 
 Hard rules and the update cases live in [`AGENTS.md`](AGENTS.md); read it first.
 
@@ -35,7 +36,7 @@ Tool-neutral Agent Skills.
 
 | Tool                    | Purpose                                                                  |
 |-------------------------|--------------------------------------------------------------------------|
-| `lib.sh`                | Shared helpers (sourced, not run): version compare, trailer parsing, identity, `MARKER_FILE`/`PKG_PATHS` defaults, `check_ceiling` |
+| `lib.sh`                | Shared helpers (sourced, not run): version compare, trailer parsing, identity, `MARKER_FILE`/`PKG_PATHS` defaults, ahead-of-Fedora note |
 | `asahi-release-check.sh`| One-shot release report                                                  |
 | `asahi-delta.sh`        | Patch-id delta (new/dropped) between two Asahi stacks                    |
 | `asahi-rebuild.sh`      | Stable-gap or new-base rebuild: drop old stack, keep other commits, replay, add top commits and marker, verify |
@@ -44,14 +45,14 @@ Tool-neutral Agent Skills.
 | `asahi-review.sh`       | List backports whose conflict resolution a tool made and nobody reviewed |
 | `conflict-side.py`      | Pick one side of every conflict hunk in a file                           |
 
-`asahi-port.sh` and `asahi-rebuild.sh` call `check_ceiling` first and refuse any Asahi tag
-newer than the newest Fedora Asahi tag. It fails closed if Fedora is unreachable and has
-no override.
+`asahi-port.sh` and `asahi-rebuild.sh` print a note when the Asahi tag is ahead of the newest
+Fedora Asahi tag. It is informational and never blocks a port.
 
 ## Release check
 
-The Fedora Asahi tag is the ceiling. Only the AsahiLinux/linux tag at the commit of the
-newest Fedora tag is a candidate; newer upstream tags are reported for information only.
+The candidate is the newest AsahiLinux/linux tag. Fedora Asahi is only a comparison: the
+report says `ahead_of_fedora=yes` when the tag is newer than Fedora's newest and not at any
+Fedora tag's commit.
 
 The full kernel version (X.Y.Z, including the stable level) of the Ubuntu Asahi branch is
 compared numerically with the tag's (see `AGENTS.md`):
