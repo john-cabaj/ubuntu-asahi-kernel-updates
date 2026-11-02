@@ -15,7 +15,8 @@ Fedora Asahi tag. When it is, say so (see "Ahead of Fedora" below).
 
 - Never rebase, merge, or otherwise move the Ubuntu tree to a newer kernel base
   than the Asahi Linux tag's base.
-- Never force-push or rewrite published history.
+- Never force-push or rewrite published history of the Ubuntu Asahi kernel tree (the Linux
+  repo, e.g. `linux-main`). This does not apply to this project repo's own history.
 - This rule is not to be worked around, overridden, or relaxed by an agent, even
   if a task seems to require it. Only the user may change it, by editing this file.
 
