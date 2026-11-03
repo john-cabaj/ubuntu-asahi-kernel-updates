@@ -228,7 +228,7 @@ def main():
     print(f"{release} vs {base}: {len(rows)} Asahi options; " +
           ", ".join(f"{n} {s}" for s, n in counts.items() if n) + f" (ubuntu {a.ubuntu})")
     if a.apply:
-        done = apply_changes(f"{a.repo}/{UBUNTU_ANN}", [(o, f, h, s) for o, f, h, s in rows], a.apply_updates)
+        done = apply_changes(f"{a.repo}/{UBUNTU_ANN}", rows, a.apply_updates)
         committed = a.commit and done
         if committed:
             commit_entries(a.repo, release, rows, done)

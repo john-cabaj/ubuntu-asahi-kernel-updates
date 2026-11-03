@@ -1,16 +1,17 @@
 #!/bin/bash
 # Replay the Asahi Linux patch stack onto an Ubuntu Asahi tree (AGENTS.md case 2/3 helper).
 #
-# Replays the whole stack as Asahi does on a new Linux base, adding the upstream URL to each
-# commit's provenance trailer in the same pass, then records the port with a marker commit.
-# Never pushes. Use tools/asahi-rebuild.sh to build BASE and handle the layers around the stack.
+# Replays the whole stack (LINUX_TAG..ASAHI_TAG, no merges) onto BASE as Asahi does, adding the
+# Asahi URL to each commit's provenance trailer in the same pass, then records the port with a
+# marker commit. Never pushes. Use tools/asahi-rebuild.sh to build BASE and to handle the
+# layers around the stack.
 #
 # Required env:
-#   UBUNTU_REPO   path to the ubuntu-asahi clone (must already contain the Asahi tags/objects)
+#   UBUNTU_REPO   the ubuntu-asahi tree (must already contain the Asahi tags/objects). The port
+#                 runs in this tree itself (cranky needs that directory): it is switched to BRANCH
 #   BASE          Ubuntu commit to start from (the commit just before the first Asahi patch)
 #   LINUX_TAG     Linux tag the Asahi tag is based on (e.g. v7.2.12)
 #   ASAHI_TAG     Asahi tag to port (e.g. asahi-7.2.12-2)
-#   WORKTREE      the tree to work in; set equal to UBUNTU_REPO (a separate dir becomes a git worktree)
 # Optional env:
 #   BRANCH        new branch name (default: asahi-port)
 #   KEEP_UBUNTU_FILES  space-separated files where, on conflict, Ubuntu's hunks are kept
@@ -20,13 +21,13 @@
 #                 Set it only for work that person has reviewed.
 #   URL           provenance URL (default: https://github.com/AsahiLinux/linux)
 #   DATE          date in the marker line (default: today, YYYY-MM-DD)
-#   LOG           log file (default: $WORKTREE.conflicts.log)
+#   LOG           log file (default: asahi-port.log inside the tree's git dir)
 #   GIT_AUTHOR_*/GIT_COMMITTER_*  identity (the repo may have none configured)
 #
 # Stops (prints STOP) at each unresolved conflict: resolve, `git add`, and re-run with the same
 # env. A re-run resumes the pending pick and never replays what already landed or was skipped.
 set -u
-: "${UBUNTU_REPO:?}" "${BASE:?}" "${LINUX_TAG:?}" "${ASAHI_TAG:?}" "${WORKTREE:?}"
+: "${UBUNTU_REPO:?}" "${BASE:?}" "${LINUX_TAG:?}" "${ASAHI_TAG:?}"
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 # Informational: say when the tag is ahead of Fedora Asahi (never blocks).
 note_fedora "$ASAHI_TAG" "$UBUNTU_REPO" >&2
@@ -34,7 +35,6 @@ BRANCH=${BRANCH:-asahi-port}; URL=${URL:-https://github.com/AsahiLinux/linux}
 KEEP_UBUNTU_FILES=${KEEP_UBUNTU_FILES:-}
 NOTE_NAME=${NOTE_NAME:-}
 if [ -n "$NOTE_NAME" ]; then NOTE_TEXT="[$NOTE_NAME: context changes]"; else NOTE_TEXT=$UNREVIEWED_NOTE; fi
-LOG=${LOG:-$WORKTREE.conflicts.log}
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 STATE=$(mktemp -d "${TMPDIR:-/tmp}/asahi-port.XXXXXX"); trap 'rm -rf "$STATE"' EXIT
 export URL STATE NOTE_TEXT
@@ -46,6 +46,9 @@ unmerged() { git diff --name-only --diff-filter=U; }
 landed() { git log --format=%B "$BASE..HEAD" | trailer_shas; }
 
 # --- setup -------------------------------------------------------------------------------
+# Per-run scratch files in $STATE: list (every stack commit, oldest first), done (already landed
+# or skipped), todo (list minus done), msgfix (the commit-message editor below).
+
 # Commit-message editor for `cherry-pick -e`: adds the provenance URL to the
 # "(cherry picked|backported) from commit" line. While $STATE/BACKPORT_ONCE exists the commit is
 # a conflict resolution: relabel it "backported" and add the note NOTE_TEXT.
@@ -67,16 +70,17 @@ EOS
   export GIT_EDITOR="$STATE/msgfix"
 }
 
-setup_worktree() {
-  if [ "$(cd "$WORKTREE" 2>/dev/null && pwd -P)" = "$(cd "$UBUNTU_REPO" && pwd -P)" ]; then
-    # Working in the supplied tree itself (required by cranky's handle layout): switch it to BRANCH.
-    git -C "$UBUNTU_REPO" rev-parse -q --verify "refs/heads/$BRANCH" >/dev/null ||
-      git -C "$UBUNTU_REPO" checkout -q -b "$BRANCH" "$BASE" || exit 1
-    git -C "$UBUNTU_REPO" checkout -q "$BRANCH" || exit 1
-  else
-    [ -d "$WORKTREE" ] || git -C "$UBUNTU_REPO" worktree add -q -b "$BRANCH" "$WORKTREE" "$BASE" || exit 1
+# Switch UBUNTU_REPO to BRANCH (created at BASE if new), then prepare the log, rerere and skip list.
+setup_tree() {
+  cd "$UBUNTU_REPO" || exit 1
+  # Only switch when needed: on a resume after a STOP the tree is already on BRANCH with a pick
+  # pending, and any checkout (even of the same branch) would discard that pick's state.
+  if ! git rev-parse -q --verify "refs/heads/$BRANCH" >/dev/null; then
+    git checkout -q -b "$BRANCH" "$BASE" || exit 1
+  elif [ "$(git branch --show-current)" != "$BRANCH" ]; then
+    git checkout -q "$BRANCH" || exit 1
   fi
-  cd "$WORKTREE" || exit 1
+  LOG=${LOG:-$(git rev-parse --absolute-git-dir)/asahi-port.log}
   # rerere replays earlier hand resolutions (cache: $GIT_DIR/rr-cache); autoUpdate stages them.
   git config rerere.enabled true; git config rerere.autoUpdate true
   : > "$LOG"
@@ -196,7 +200,7 @@ report() {
 
 main() {
   install_msgfix
-  setup_worktree
+  setup_tree
   pick_pending >/dev/null || replay_stack
   resolve_loop
   remember_unlanded

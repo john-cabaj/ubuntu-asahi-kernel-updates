@@ -20,15 +20,13 @@ kernel_ver() {
 }
 
 # --- gather ------------------------------------------------------------------------------
+# Asahi side first (newest release tag), then Fedora (comparison only), then Ubuntu.
 asahi_tags=$(release_tags "$ASAHI_URL"); [ -n "$asahi_tags" ] || err "no Asahi tags"
 ASAHI_TAG=$(tail -1 <<<"$asahi_tags" | cut -d' ' -f1)
 ASAHI_COMMIT=$(tail -1 <<<"$asahi_tags" | cut -d' ' -f2)
-fedora=$(release_tags "$FEDORA_URL" | tail -1)
-FEDORA_TAG=${fedora% *}; FEDORA_COMMIT=${fedora#* }
-# Ahead of Fedora: newer than Fedora's newest tag and not at any Fedora tag's commit.
-if [ -z "$fedora" ]; then AHEAD=unknown
-elif [ "$ASAHI_COMMIT" = "$FEDORA_COMMIT" ] || ! version_gt "$(release_num "$ASAHI_TAG")" "$(release_num "$FEDORA_TAG")"; then AHEAD=no
-else AHEAD=yes; fi
+fedora_tags=$(release_tags "$FEDORA_URL")
+FEDORA_TAG=$(tail -1 <<<"$fedora_tags" | cut -d' ' -f1)
+AHEAD=$(ahead_of_fedora "$ASAHI_TAG" "$ASAHI_COMMIT" "$fedora_tags")
 
 UBUNTU_TAG=$(git ls-remote --tags "$UBUNTU_URL" 'refs/tags/Ubuntu-asahi-arm-*' |
   awk '{print $2}' | sed 's#refs/tags/##;s/\^{}//' | sort -uV | tail -1)

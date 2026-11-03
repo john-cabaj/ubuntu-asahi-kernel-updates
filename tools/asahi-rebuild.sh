@@ -9,11 +9,11 @@
 # marker commit. See the asahi-port skill. Never pushes.
 #
 # Required env:
-#   UBUNTU_REPO  ubuntu-asahi clone (must contain LINUX_TAG and ASAHI_TAG)
+#   UBUNTU_REPO  the ubuntu-asahi tree (must contain LINUX_TAG and ASAHI_TAG). All work happens
+#                in this tree itself (cranky needs that directory), so it must be clean
 #   OLD          existing Ubuntu Asahi branch/commit to start from (e.g. asahi-arm-7.2)
 #   LINUX_TAG    target stable tag (e.g. v7.2.14)
 #   ASAHI_TAG    Asahi tag to port (e.g. asahi-7.2.14-1)
-#   WORKTREE     the result tree; set equal to UBUNTU_REPO (a separate dir becomes a git worktree)
 # Optional env:
 #   BRANCH       result branch (default: asahi-rebuild); BRANCH-layers holds the new base
 #   GENERIC      generic Ubuntu base commit (default: nearest first-parent 'UBUNTU: Ubuntu-<digit>')
@@ -27,10 +27,11 @@
 #   GIT_AUTHOR_*/GIT_COMMITTER_*  default: author of OLD's tip
 # Re-run with the same env after resolving a stop; finished phases are skipped.
 set -u
-: "${UBUNTU_REPO:?}" "${OLD:?}" "${LINUX_TAG:?}" "${ASAHI_TAG:?}" "${WORKTREE:?}"
+: "${UBUNTU_REPO:?}" "${OLD:?}" "${LINUX_TAG:?}" "${ASAHI_TAG:?}"
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 # Informational: say when the tag is ahead of Fedora Asahi (never blocks).
 note_fedora "$ASAHI_TAG" "$UBUNTU_REPO" >&2
+UBUNTU_REPO=$(cd "$UBUNTU_REPO" && pwd -P) || exit 1          # absolute: the tools cd into it
 BRANCH=${BRANCH:-asahi-rebuild}; LAYERS=$BRANCH-layers
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 MARK="Asahi patchset $ASAHI_TAG"
@@ -38,8 +39,10 @@ g() { git -C "$UBUNTU_REPO" "$@"; }
 die() { echo "STOP: $*" >&2; exit 1; }
 # Subject of commit $1 in the repo.
 subject() { g log -1 --format=%s "$1"; }
-# Is a cherry-pick pending in the result worktree?
-wt_pick_pending() { [ -n "$(git -C "$WORKTREE" rev-parse -q --verify CHERRY_PICK_HEAD)" ]; }
+# Is a cherry-pick pending in the tree?
+pick_pending() { [ -n "$(g rev-parse -q --verify CHERRY_PICK_HEAD)" ]; }
+# Has the new stack already been replayed and marked on BRANCH (a re-run after it finished)?
+replayed() { [ "$(g branch --show-current)" = "$BRANCH" ] && ! pick_pending && [ "$(subject HEAD)" = "$MARK" ]; }
 
 # --- 1. find the layers of OLD ------------------------------------------------------------
 # Sets GENERIC (generic base), F (first stack commit), PKG_TIP (top of packaging), L (last stack
@@ -93,28 +96,24 @@ build_layers() {
   g rev-parse -q --verify "refs/heads/$LAYERS" >/dev/null && return 0
   g merge-tree --write-tree --name-only --no-messages "$GENERIC" "$LINUX_TAG" >/dev/null ||
     die "merging $LINUX_TAG into the generic base conflicts (git merge-tree to inspect)"
-  g worktree add -q -b "$LAYERS" "$WORKTREE.layers" "$GENERIC" || die "worktree"
-  ( cd "$WORKTREE.layers" || exit 1
-    git merge --no-ff -q -m "Merge tag '$LINUX_TAG' into $(subject "$GENERIC" | sed 's/^UBUNTU: //') base" "$LINUX_TAG" >/dev/null || exit 1
+  [ -z "$(g status --porcelain --untracked-files=no)" ] || die "$UBUNTU_REPO has uncommitted changes"
+  g checkout -q -b "$LAYERS" "$GENERIC" || die "cannot create $LAYERS"
+  ( git merge --no-ff -q -m "Merge tag '$LINUX_TAG' into $(subject "$GENERIC" | sed 's/^UBUNTU: //') base" "$LINUX_TAG" >/dev/null || exit 1
     local newbase c; newbase=$(git rev-parse HEAD)
     git reset -q --hard "$PKG_TIP"
-    git rebase --onto "$newbase" "$GENERIC" >/dev/null 2>&1 || { echo "packaging rebase conflicts in $WORKTREE.layers"; exit 1; }
+    git rebase --onto "$newbase" "$GENERIC" >/dev/null 2>&1 || { echo "packaging rebase conflicts"; exit 1; }
     for c in ${BELOW[@]+"${BELOW[@]}"}; do
-      git cherry-pick "$c" >/dev/null 2>&1 || { echo "cherry-pick conflict: $c in $WORKTREE.layers"; exit 1; }
-    done ) || die "layers phase failed (worktree $WORKTREE.layers left for inspection)"
-  g worktree remove --force "$WORKTREE.layers"
+      git cherry-pick "$c" >/dev/null 2>&1 || { echo "cherry-pick conflict: $c"; exit 1; }
+    done ) || die "layers phase failed (left on branch $LAYERS in $UBUNTU_REPO for inspection; delete the branch to retry)"
 }
 
 # --- 3. replay the new stack (asahi-port.sh also commits the marker) -----------------------
 replay_new_stack() {
-  if [ -d "$WORKTREE" ] && ! wt_pick_pending && [ "$(git -C "$WORKTREE" log -1 --format=%s)" = "$MARK" ]; then
-    return 0                                    # already replayed (re-run)
-  fi
+  replayed && return 0                          # already replayed (re-run)
   UBUNTU_REPO=$UBUNTU_REPO BASE=$LAYERS LINUX_TAG=$LINUX_TAG ASAHI_TAG=$ASAHI_TAG \
-    WORKTREE=$WORKTREE BRANCH=$BRANCH "$HERE/asahi-port.sh" 2>&1 |
+    BRANCH=$BRANCH "$HERE/asahi-port.sh" 2>&1 |
     grep -vE '^  [0-9a-f]{12} Merge|^merges with' | tail -8
-  ! wt_pick_pending && [ "$(git -C "$WORKTREE" log -1 --format=%s)" = "$MARK" ] ||
-    die "port stopped: resolve in $WORKTREE (see asahi-conflicts skill), git add, re-run this script"
+  replayed || die "port stopped: resolve in $UBUNTU_REPO (see asahi-conflicts skill), git add, re-run this script"
 }
 
 # --- 4. commits above the stack, then the marker last --------------------------------------
@@ -138,7 +137,7 @@ add_top_commits() {
   if [ "$need_top" = 1 ]; then
     for c in "${TOP[@]}"; do
       git cherry-pick "$c" >/dev/null 2>&1 ||
-        die "conflict applying $c above the stack in $WORKTREE (resolve, git cherry-pick --continue, then: git checkout $marker -- $MARKER_FILE; git commit -s -m '$MARK')"
+        die "conflict applying $c above the stack in $UBUNTU_REPO (resolve, git cherry-pick --continue, then: git checkout $marker -- $MARKER_FILE; git commit -s -m '$MARK')"
     done
   fi
   if [ "$need_cfg" = 1 ]; then config_check --apply --commit | grep '^applied' | sed 's/^/config: /'; fi
@@ -167,6 +166,7 @@ verify() {
 }
 
 main() {
+  cd "$UBUNTU_REPO" || die "cannot enter $UBUNTU_REPO"
   default_identity "$UBUNTU_REPO" "$OLD"
   g rev-parse -q --verify "$LINUX_TAG^{commit}" >/dev/null || die "$LINUX_TAG not in repo (git fetch URL tag $LINUX_TAG)"
   g rev-parse -q --verify "$ASAHI_TAG^{commit}" >/dev/null || die "$ASAHI_TAG not in repo"
@@ -175,7 +175,6 @@ main() {
   build_layers
   NEWBASE=$(g merge-base "$LAYERS" "$LINUX_TAG")
   replay_new_stack
-  cd "$WORKTREE" || die "worktree"
   add_top_commits
   verify
   echo "done: branch $BRANCH, tip $(git log -1 --format='%h %s')"

@@ -11,9 +11,10 @@ PKG_PATHS=${PKG_PATHS:-^(debian|ubuntu/|Ubuntu\.md)}
 # it with their own "[name: what changed]" note; the tool never writes a person's name.
 UNREVIEWED_NOTE='[asahi-port: conflict resolved automatically, unreviewed]'
 # Provenance rule: a change sourced from Asahi carries the Asahi URL in its trailer. A change
-# that is not sourced from Asahi has no URL to give, so it carries this note instead, followed by
-# the reason on the same line (e.g. "... no Asahi source: local build fix"), and is reported.
-NO_ASAHI_NOTE='[asahi-port: no Asahi source]'
+# that is not sourced from Asahi has no URL to give, so it carries a line starting with this
+# prefix, then ": <reason>]" (e.g. "[asahi-port: no Asahi source: local build fix]"), and is
+# reported. The prefix has no closing bracket so that a search finds every reason.
+NO_ASAHI_NOTE='[asahi-port: no Asahi source'
 
 # Linux tag an Asahi tag is based on: asahi-7.2.14-1 -> v7.2.14, asahi-6.4-10 -> v6.4.
 linux_base_tag() { sed -E 's/^asahi-([0-9]+(\.[0-9]+)+)-[0-9]+$/v\1/' <<<"$1"; }
@@ -56,18 +57,22 @@ release_tags() {
 # Comparable release number: asahi-7.2.14-1 -> 7.2.14.1.
 release_num() { sed -E 's/^asahi-//; s/-/./' <<<"$1"; }
 
-# Print "yes", "no" or "unknown" for: is Asahi tag $1 (in repo $2, default cwd) ahead of Fedora
-# Asahi? Ahead means newer than the newest Fedora tag and not at any Fedora tag's commit.
-# "unknown" if the Fedora tags or the tag cannot be read. Never fails: Fedora is not a limit.
-fedora_ahead() {
-  local tag=$1 repo=${2:-.} fed newest commit
-  fed=$(release_tags "$FEDORA_URL" 2>/dev/null)
+# Print "yes", "no" or "unknown": is Asahi tag $1 (at commit $2) ahead of Fedora Asahi, whose
+# release_tags output is $3? Ahead means newer than the newest Fedora tag and not at any Fedora
+# tag's commit (AGENTS.md). "unknown" if either side is missing. Never fails: Fedora is not a limit.
+ahead_of_fedora() {
+  local tag=$1 commit=$2 fed=$3 newest
   newest=$(tail -1 <<<"$fed" | cut -d' ' -f1)
-  commit=$(git -C "$repo" rev-parse -q --verify "$tag^{commit}")
   { [ -n "$newest" ] && [ -n "$commit" ]; } || { echo unknown; return 0; }
   if awk -v c="$commit" '$2==c{f=1} END{exit !f}' <<<"$fed"; then echo no
   elif version_gt "$(release_num "$tag")" "$(release_num "$newest")"; then echo yes
   else echo no; fi
+}
+# Same, for a tag in repo $2 (default cwd), fetching the Fedora tags itself.
+fedora_ahead() {
+  local tag=$1 repo=${2:-.}
+  ahead_of_fedora "$tag" "$(git -C "$repo" rev-parse -q --verify "$tag^{commit}")" \
+    "$(release_tags "$FEDORA_URL" 2>/dev/null)"
 }
 # Print a one-line note when Asahi tag $1 is ahead of (or cannot be compared with) Fedora.
 note_fedora() {
