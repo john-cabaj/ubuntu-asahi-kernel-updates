@@ -40,7 +40,6 @@ STATE=$(mktemp -d "${TMPDIR:-/tmp}/asahi-port.XXXXXX"); trap 'rm -rf "$STATE"' E
 export URL STATE NOTE_TEXT
 
 log() { echo "$*" | tee -a "$LOG"; }
-pick_pending() { git rev-parse -q --verify CHERRY_PICK_HEAD; }
 unmerged() { git diff --name-only --diff-filter=U; }
 # Source commits already applied on top of BASE, by provenance trailer.
 landed() { git log --format=%B "$BASE..HEAD" | trailer_shas; }

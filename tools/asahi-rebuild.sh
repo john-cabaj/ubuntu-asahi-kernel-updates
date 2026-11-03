@@ -35,43 +35,40 @@ UBUNTU_REPO=$(cd "$UBUNTU_REPO" && pwd -P) || exit 1          # absolute: the to
 BRANCH=${BRANCH:-asahi-rebuild}; LAYERS=$BRANCH-layers
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 MARK="Asahi patchset $ASAHI_TAG"
-g() { git -C "$UBUNTU_REPO" "$@"; }
 die() { echo "STOP: $*" >&2; exit 1; }
 # Subject of commit $1 in the repo.
-subject() { g log -1 --format=%s "$1"; }
-# Is a cherry-pick pending in the tree?
-pick_pending() { [ -n "$(g rev-parse -q --verify CHERRY_PICK_HEAD)" ]; }
+subject() { git log -1 --format=%s "$1"; }
 # Has the new stack already been replayed and marked on BRANCH (a re-run after it finished)?
-replayed() { [ "$(g branch --show-current)" = "$BRANCH" ] && ! pick_pending && [ "$(subject HEAD)" = "$MARK" ]; }
+replayed() { [ "$(git branch --show-current)" = "$BRANCH" ] && ! pick_pending >/dev/null && [ "$(subject HEAD)" = "$MARK" ]; }
 
 # --- 1. find the layers of OLD ------------------------------------------------------------
 # Sets GENERIC (generic base), F (first stack commit), PKG_TIP (top of packaging), L (last stack
 # commit), and sorts the non-Asahi commits above the stack into BELOW (packaging-only; they can
 # go under the new stack) and TOP (they edit other files; they must go above it).
 find_layers() {
-  GENERIC=${GENERIC:-$(g log --first-parent -1 --format=%H --grep='^UBUNTU: Ubuntu-[0-9]' "$OLD")}
+  GENERIC=${GENERIC:-$(git log --first-parent -1 --format=%H --grep='^UBUNTU: Ubuntu-[0-9]' "$OLD")}
   [ -n "$GENERIC" ] || die "no generic base found; set GENERIC"
-  F=$(g log --reverse --topo-order --no-merges --format=%H \
+  F=$(git log --reverse --topo-order --no-merges --format=%H \
       --grep='cherry picked from\|backported from' "$GENERIC..$OLD" | head -1)
   [ -n "$F" ] || die "no Asahi stack found above $GENERIC"
-  PKG_TIP=$(g rev-parse "$F^")
-  [ "$(g rev-list --merges --count "$F^..$OLD")" = 0 ] || die "merges above the packaging; not handled"
+  PKG_TIP=$(git rev-parse "$F^")
+  [ "$(git rev-list --merges --count "$F^..$OLD")" = 0 ] || die "merges above the packaging; not handled"
 
   # The stack runs from F up to the commit before the first "UBUNTU:"/"Asahi patchset" commit.
   local R i c split=""
-  mapfile -t R < <(g log --reverse --topo-order --format='%H %s' "$F^..$OLD")
+  mapfile -t R < <(git log --reverse --topo-order --format='%H %s' "$F^..$OLD")
   for i in "${!R[@]}"; do
     case "${R[$i]#* }" in "UBUNTU:"*|"Asahi patchset"*) split=$i; break;; esac
   done
   [ -n "$split" ] || die "no Ubuntu commit above the stack"
   STACK_LEN=$split
   L=${R[$((split-1))]%% *}
-  g log --format= --name-only "$PKG_TIP..$L" | grep -q '^debian' && die "debian files inside the stack range $F..$L"
+  git log --format= --name-only "$PKG_TIP..$L" | grep -q '^debian' && die "debian files inside the stack range $F..$L"
 
   BELOW=(); TOP=()
   for ((i = split; i < ${#R[@]}; i++)); do
     c=${R[$i]%% *}
-    if g diff-tree --no-commit-id --name-only -r "$c" | grep -qvE "$PKG_PATHS"; then
+    if git diff-tree --no-commit-id --name-only -r "$c" | grep -qvE "$PKG_PATHS"; then
       TOP+=("$c"); else BELOW+=("$c"); fi
   done
 }
@@ -81,23 +78,23 @@ report_layers() {
   if [ "${KEEP_TOP:-0}" != 1 ] && [ ${#TOP[@]} -gt 0 ]; then
     DROPPED_TOP=("${TOP[@]}"); TOP=()
     for c in "${DROPPED_TOP[@]}"; do
-      echo "dropped (per-version fixup; re-run asahi-merge-review): $(g log -1 --format='%h %s' "$c" | cut -c1-80)"
+      echo "dropped (per-version fixup; re-run asahi-merge-review): $(git log -1 --format='%h %s' "$c" | cut -c1-80)"
     done
   fi
-  echo "generic base $(g log -1 --format='%h %s' "$GENERIC" | cut -c1-60)"
+  echo "generic base $(git log -1 --format='%h %s' "$GENERIC" | cut -c1-60)"
   echo "old stack $STACK_LEN commits ($(cut -c1-12 <<<"$F")..$(cut -c1-12 <<<"$L")); keep below: ${#BELOW[@]}, above: ${#TOP[@]}"
-  for c in ${TOP[@]+"${TOP[@]}"}; do echo "  above stack: $(g log -1 --format='%h %s' "$c" | cut -c1-80)"; done
+  for c in ${TOP[@]+"${TOP[@]}"}; do echo "  above stack: $(git log -1 --format='%h %s' "$c" | cut -c1-80)"; done
 }
 
 # --- 2. new base + packaging + kept commits ----------------------------------------------
 # Branch LAYERS = LINUX_TAG merged into the generic base, the packaging rebased onto it, then the
 # kept non-Asahi commits. Skipped if LAYERS already exists (re-run).
 build_layers() {
-  g rev-parse -q --verify "refs/heads/$LAYERS" >/dev/null && return 0
-  g merge-tree --write-tree --name-only --no-messages "$GENERIC" "$LINUX_TAG" >/dev/null ||
+  git rev-parse -q --verify "refs/heads/$LAYERS" >/dev/null && return 0
+  git merge-tree --write-tree --name-only --no-messages "$GENERIC" "$LINUX_TAG" >/dev/null ||
     die "merging $LINUX_TAG into the generic base conflicts (git merge-tree to inspect)"
-  [ -z "$(g status --porcelain --untracked-files=no)" ] || die "$UBUNTU_REPO has uncommitted changes"
-  g checkout -q -b "$LAYERS" "$GENERIC" || die "cannot create $LAYERS"
+  [ -z "$(git status --porcelain --untracked-files=no)" ] || die "$UBUNTU_REPO has uncommitted changes"
+  git checkout -q -b "$LAYERS" "$GENERIC" || die "cannot create $LAYERS"
   ( git merge --no-ff -q -m "Merge tag '$LINUX_TAG' into $(subject "$GENERIC" | sed 's/^UBUNTU: //') base" "$LINUX_TAG" >/dev/null || exit 1
     local newbase c; newbase=$(git rev-parse HEAD)
     git reset -q --hard "$PKG_TIP"
@@ -155,11 +152,11 @@ verify() {
   git log --no-merges --format=%s "$NEWBASE..HEAD" | sort > "$T/got"
   echo "missing non-stack commits: $(comm -23 "$T/exp" "$T/got" | wc -l) of $(wc -l < "$T/exp")"
 
-  oldv=v$(g show "$OLD:Makefile" | makefile_version)
-  oldtag=$(g show "$OLD:$MARKER_FILE" | grep -oE 'asahi-[0-9]+(\.[0-9]+)+-[0-9]+' | sort -V | tail -1)
+  oldv=v$(git show "$OLD:Makefile" | makefile_version)
+  oldtag=$(git show "$OLD:$MARKER_FILE" | grep -oE 'asahi-[0-9]+(\.[0-9]+)+-[0-9]+' | sort -V | tail -1)
   git diff --name-only "$LINUX_TAG" "$ASAHI_TAG" > "$T/files"
   git diff --name-only "$oldv" "$oldtag" > "$T/oldfiles"
-  g diff --name-only "$oldtag" "$OLD" -- $(cat "$T/oldfiles") | sort > "$T/base"
+  git diff --name-only "$oldtag" "$OLD" -- $(cat "$T/oldfiles") | sort > "$T/base"
   git diff --name-only "$ASAHI_TAG" HEAD -- $(cat "$T/files") | sort > "$T/new"
   echo "stack files differing from $ASAHI_TAG: $(wc -l < "$T/new") (baseline $OLD vs $oldtag: $(wc -l < "$T/base")); new-only: $(comm -13 "$T/base" "$T/new" | tr '\n' ' ')"
   rm -rf "$T"
@@ -168,12 +165,12 @@ verify() {
 main() {
   cd "$UBUNTU_REPO" || die "cannot enter $UBUNTU_REPO"
   default_identity "$UBUNTU_REPO" "$OLD"
-  g rev-parse -q --verify "$LINUX_TAG^{commit}" >/dev/null || die "$LINUX_TAG not in repo (git fetch URL tag $LINUX_TAG)"
-  g rev-parse -q --verify "$ASAHI_TAG^{commit}" >/dev/null || die "$ASAHI_TAG not in repo"
+  git rev-parse -q --verify "$LINUX_TAG^{commit}" >/dev/null || die "$LINUX_TAG not in repo (git fetch URL tag $LINUX_TAG)"
+  git rev-parse -q --verify "$ASAHI_TAG^{commit}" >/dev/null || die "$ASAHI_TAG not in repo"
   find_layers
   report_layers
   build_layers
-  NEWBASE=$(g merge-base "$LAYERS" "$LINUX_TAG")
+  NEWBASE=$(git merge-base "$LAYERS" "$LINUX_TAG")
   replay_new_stack
   add_top_commits
   verify

@@ -25,6 +25,9 @@ makefile_version() {
   awk '/^EXTRAVERSION/{d=1} !d && /^(VERSION|PATCHLEVEL|SUBLEVEL) =/{v=v (v?".":"") $3} END{print v}'
 }
 
+# Print the commit of the cherry-pick in progress in the current tree (fails if none).
+pick_pending() { git rev-parse -q --verify CHERRY_PICK_HEAD; }
+
 # Source commit ids named by "(cherry picked|backported) from commit <sha>" lines in text on stdin.
 trailer_shas() {
   grep -oE '(cherry picked|backported) from commit [0-9a-f]{40}' | awk '{print $NF}'
