@@ -15,7 +15,7 @@
 # Optional env:
 #   BRANCH        new branch name (default: asahi-port)
 #   KEEP_UBUNTU_FILES  space-separated files where, on conflict, Ubuntu's hunks are kept
-#                 (opt-in policy; commits left empty by this are skipped). Unverified.
+#                 (opt-in policy; commits left empty by this are skipped).
 #   NOTE_NAME     reviewer name for the backport note "[name: context changes]". Default: unset,
 #                 and resolved picks get the unreviewed note (lib.sh) for tools/asahi-review.sh.
 #                 Set it only for work that person has reviewed.
@@ -143,7 +143,7 @@ resolve_loop() {
     if [ -n "$files" ]; then
       all_in_keep_list $files || { log "STOP $c: conflict in: $files (resolve, git add, re-run)"; break; }
       resolve_keep_ubuntu $files
-      log "CONFLICT $c $files -> kept Ubuntu hunks (policy, unverified)"
+      log "CONFLICT $c $files -> kept Ubuntu hunks (policy)"
     fi
     finish "$c" || break
   done
