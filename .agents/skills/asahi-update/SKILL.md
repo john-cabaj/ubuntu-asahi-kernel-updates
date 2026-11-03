@@ -75,6 +75,5 @@ Report:
   cleanly and need the user's review. The user signs each one off. You never do, and you
   do not stop the port to ask.
 - Commits with no Asahi source (`asahi-review.sh` lists them): hash, subject, reason.
-- What was not run.
 
 The user does any publishing. Never push.

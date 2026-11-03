@@ -138,5 +138,5 @@ Ask before destroying a chroot, and report any such change to the user.
 
 ## Report
 
-Give the version and ABI from the changelog, the commits added, any master changes reviewed,
-and anything not run.
+Give the version and ABI from the changelog, the commits added, and any master
+changes reviewed.
