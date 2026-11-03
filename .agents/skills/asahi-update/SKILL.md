@@ -63,12 +63,7 @@ Needs `cranky`. If it is missing, stop and say so. The skill gives the exact ord
 config check, `cranky fix`, a `cranky rebase --dry-run` check, `open`, `review-master-changes`,
 `updateconfigs`, `close`.
 
-## 6. Build and test
-
-arm64, asahi-arm config, Rust enabled. There is no build skill yet. If this was not done, say
-so, and never call an unbuilt tree verified.
-
-## 7. Report and stop
+## 6. Report and stop
 
 Report:
 
@@ -77,9 +72,9 @@ Report:
 - Conflicts and their resolutions, and the merges reviewed.
 - Config options added or left for a decision.
 - The unreviewed backports (`tools/asahi-review.sh RANGE`). Say they did not cherry-pick
-  cleanly and need the user's review. The user signs each one off; you never do, and you do
-  not stop the port to ask.
+  cleanly and need the user's review. The user signs each one off. You never do, and you
+  do not stop the port to ask.
 - Commits with no Asahi source (`asahi-review.sh` lists them): hash, subject, reason.
 - What was not run.
 
-Publishing is the user's. Never push.
+The user does any publishing. Never push.

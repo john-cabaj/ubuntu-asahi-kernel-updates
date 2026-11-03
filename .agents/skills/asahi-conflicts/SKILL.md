@@ -54,7 +54,7 @@ each with the `git range-diff` command that shows how it differs from the Asahi 
 `--check` exits 1 if any remain.
 
 A human reviews each one, then replaces the note with `[their name: what was changed and why]`,
-or tags the commit their own way. That sign-off is the user's, per commit:
+or tags the commit their own way. The user does that sign-off, one commit at a time:
 
 - Never write a person's name for them (`NOTE_NAME` is only for work that person has reviewed).
 - Never sign off yourself.

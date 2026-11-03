@@ -67,7 +67,7 @@ Ubuntu Asahi tree with that of the new Asahi Linux tag, numerically:
    - Packaging for a same-release update (e.g. resolute to resolute) is the
      `asahi-crank` skill (`cranky open`, `review-master-changes`,
      `fdr clean updateconfigs`, `close`). [Open: a switch to a new Ubuntu release
-     (extra packaging, variants, update.conf, getabis) is not yet specified.]
+     (extra packaging, variants, update.conf) is not yet specified.]
 3. **Ubuntu ahead:** (higher X.Y.Z) the base stays as it is. Try to apply the latest Asahi
    Linux patchset, but accept only patches that resolve extremely easily.
    - Accept a patch only if `git cherry-pick` applies it cleanly, with no

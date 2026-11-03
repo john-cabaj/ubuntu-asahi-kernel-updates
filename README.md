@@ -15,7 +15,7 @@ Start with the `asahi-update` skill. It routes through these steps in order:
 3. **Review merges** for changes that cherry-picking loses (`asahi-merge-review`).
 4. **Config and packaging** with cranky (`asahi-crank`).
 
-Nothing here pushes or publishes. That is always left to the user.
+Nothing here pushes or publishes. The user does that.
 
 ## Where things live
 

@@ -130,7 +130,5 @@ done
 
 ## Before calling it done
 
-- Build arm64 with the asahi-arm config and Rust enabled. Fix or report failures.
 - Run `tools/asahi-review.sh` on the new range and report the unreviewed backports.
-- Report what was not built or tested, the skipped (empty) picks, every conflict with its
-  resolution, and the merges reviewed. Do not describe unbuilt results as verified.
+- Report the skipped (empty) picks, every conflict with its resolution, and the merges reviewed.

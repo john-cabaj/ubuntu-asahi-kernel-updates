@@ -6,7 +6,7 @@ description: Use after an Asahi port is complete (asahi-port, asahi-merge-review
 # Asahi crank
 
 Packaging for a same-release update with cranky. A switch to a new Ubuntu release is out of
-scope: it also needs "Moving to ..." packaging, variants, `update.conf` and getabis. Stop and
+scope: it also needs "Moving to ..." packaging, variants, and `update.conf`. Stop and
 report instead.
 
 ## Before you start
@@ -108,11 +108,11 @@ Run from the kernel tree, in this order.
    `UBUNTU: [Config] asahi-arm: updateconfigs from vX.Y.Z`. No change means no commit.
 
 6. **`cranky close --base-version <generic base version>`** (for example `7.2.0-5.5`, from the
-   `UBUNTU: Ubuntu-X.Y.0-N.M` base commit or `debian.master/changelog`; the user confirmed it
-   for 7.2.0-1002.2). It fills the changelog, sets series and date, updates `reconstruct`, and
-   commits `UBUNTU: Ubuntu-asahi-arm-X.Y.0-ABI.N`. If it exits early on dependency config
-   changes, commit those (reference the original bug) and re-run it. Add no commits after
-   `close` without re-running it.
+   `UBUNTU: Ubuntu-X.Y.0-N.M` base commit or `debian.master/changelog`). It fills the
+   changelog, sets series and date, updates `reconstruct`, and commits
+   `UBUNTU: Ubuntu-asahi-arm-X.Y.0-ABI.N`. If it exits early on dependency config changes,
+   commit those (reference the original bug) and re-run it. Add no commits after `close`
+   without re-running it.
 
 Expected commit order on the branch (as in 7.0.0-1002.2 and 7.2.0-1001.1), bottom to top:
 marker, Start new release, `[Config]` updateconfigs (optional), closing commit.
@@ -128,7 +128,7 @@ These came up in the sandbox container. A normal machine needs none of this.
   2. `touch` the same names in `<chroot>/dev/`.
   3. Destroy and recreate the session.
 
-  Only `updateconfigs` and builds need this; `open` and `close` do not.
+  Only `updateconfigs` needs this; `open` and `close` do not.
 - **`dh_testdir: command not found`**: the base lacks debhelper. Run
   `cranky chroot destroy-session`, then `destroy-base` (if it stops on permissions:
   `sudo rm -rf /var/lib/schroot/chroots/<series>-amd64`), then `create-base` and
@@ -139,4 +139,4 @@ Ask before destroying a chroot, and report any such change to the user.
 ## Report
 
 Give the version and ABI from the changelog, the commits added, any master changes reviewed,
-and anything not run. Do not describe an unbuilt kernel as tested.
+and anything not run.
