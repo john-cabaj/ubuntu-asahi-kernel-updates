@@ -136,12 +136,6 @@ These came up in the sandbox container. A normal machine needs none of this.
 
 Ask before destroying a chroot, and report any such change to the user.
 
-## Not in this skill
-
-Leave these to the user: `cranky link-tb` (it makes public changes), `test-build`,
-`update-dependents`, `tags`, `build-sources`, `push-refs`, `dput-sources`.
-`update-dkms-versions` is not needed (there is no `dkms-versions` file in `debian.asahi-arm`).
-
 ## Report
 
 Give the version and ABI from the changelog, the commits added, any master changes reviewed,

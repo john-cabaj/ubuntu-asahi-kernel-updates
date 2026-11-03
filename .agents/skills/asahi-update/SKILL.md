@@ -82,4 +82,4 @@ Report:
 - Commits with no Asahi source (`asahi-review.sh` lists them): hash, subject, reason.
 - What was not run.
 
-Publishing (`link-tb`, tags, `push-refs`, `dput-sources`) is the user's. Never push.
+Publishing is the user's. Never push.
