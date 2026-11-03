@@ -33,7 +33,9 @@ inside a merge's conflict resolution ("evil" hunks) are lost. Examples seen: add
 These SAUCE commits fix one patchset version and are not carried to the next port
 (`asahi-rebuild.sh` drops them). Redo the review for each new tag; `asahi-rebuild.sh`'s
 `new-only:` files are the starting point. An earlier commit can be a template if the
-hunks are the same.
+hunks are the same, but replace its trailer: a `cherry-pick -x` of the old SAUCE commit gives
+`(cherry picked from commit <old Ubuntu sha>)`, which is wrong and has no URL. Rewrite it as
+`(backported from merge commit <Asahi merge sha> https://github.com/AsahiLinux/linux)`.
 
 ## Honesty
 

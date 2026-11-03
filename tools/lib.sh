@@ -10,6 +10,10 @@ PKG_PATHS=${PKG_PATHS:-^(debian|ubuntu/|Ubuntu\.md)}
 # itself. Fixed text so tools/asahi-review.sh can find these commits later. A reviewer replaces
 # it with their own "[name: what changed]" note; the tool never writes a person's name.
 UNREVIEWED_NOTE='[asahi-port: conflict resolved automatically, unreviewed]'
+# Provenance rule: a change sourced from Asahi carries the Asahi URL in its trailer. A change
+# that is not sourced from Asahi has no URL to give, so it carries this note instead, followed by
+# the reason on the same line (e.g. "... no Asahi source: local build fix"), and is reported.
+NO_ASAHI_NOTE='[asahi-port: no Asahi source]'
 
 # Linux tag an Asahi tag is based on: asahi-7.2.14-1 -> v7.2.14, asahi-6.4-10 -> v6.4.
 linux_base_tag() { sed -E 's/^asahi-([0-9]+(\.[0-9]+)+)-[0-9]+$/v\1/' <<<"$1"; }

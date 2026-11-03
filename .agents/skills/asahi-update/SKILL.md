@@ -46,6 +46,7 @@ tools), say so in every report. This is the order of work; each step names the s
    - the unreviewed backports (`tools/asahi-review.sh RANGE`): say they did not
      cherry-pick cleanly and need the user's review. The user signs them off per commit,
      you never do, and you do not stop the port to ask;
+   - commits with no Asahi source (`asahi-review.sh` lists them): hash, subject, reason;
    - what was not run.
 
    Publishing (`link-tb`, tags, `push-refs`, `dput-sources`) is the user's; never push.

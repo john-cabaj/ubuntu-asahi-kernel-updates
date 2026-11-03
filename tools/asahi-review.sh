@@ -1,5 +1,6 @@
 #!/bin/bash
-# List backports whose conflict resolution was made by asahi-port.sh and not yet reviewed.
+# List backports whose conflict resolution was made by asahi-port.sh and not yet reviewed, and
+# commits marked as having no Asahi source (NO_ASAHI_NOTE in lib.sh).
 #
 # Such commits carry the unreviewed note (lib.sh) under "(backported from commit ...)". A human
 # reviews each one, then replaces the note with "[their name: what was changed and why]".
@@ -20,4 +21,11 @@ while read -r c; do
   n=$((n + 1))
 done < <(git -C "$R" log --format=%H --fixed-strings --grep="$UNREVIEWED_NOTE" "$range")
 echo "$n unreviewed backport(s) in $range"
-[ "$check" = 0 ] || [ "$n" = 0 ]
+m=0
+while read -r c; do
+  echo "$(git -C "$R" log -1 --format='%h %s' "$c" | cut -c1-90)"
+  git -C "$R" log -1 --format=%B "$c" | grep -F "$NO_ASAHI_NOTE" | sed 's/^/    /'
+  m=$((m + 1))
+done < <(git -C "$R" log --format=%H --fixed-strings --grep="$NO_ASAHI_NOTE" "$range")
+echo "$m commit(s) with no Asahi source in $range"
+[ "$check" = 0 ] || [ $((n + m)) = 0 ]

@@ -103,6 +103,24 @@ absent (BASE has no packaging layer, which means BASE is wrong; see Layers).
 - Merge review: `git diff-tree --cc -p` shows only real resolution hunks; a merge listed by
   the script can have none. Files that already equal the Asahi tag need nothing.
 
+## Provenance URL (required)
+
+Every Asahi commit needs `(cherry picked from commit <sha> https://github.com/AsahiLinux/linux)`
+(or `backported from`), and a SAUCE commit built from a merge needs
+`(backported from merge commit <sha> <URL>)`. `asahi-port.sh` adds the URL to its picks.
+Check the whole stack before packaging; the only commits without one should be the marker:
+```sh
+for c in $(git log --no-merges --format=%H LAYERS..STACK_TIP); do
+  git log -1 --format=%B $c | grep -qE '^\((cherry picked|backported) from (merge )?commit [0-9a-f]+ https://' || echo $c
+done
+```
+Fix any commit listed before `cranky open` (hand-made picks too: `-x` alone gives no URL).
+If the change is sourced from Asahi, use the Asahi URL (merge-derived: `backported from merge
+commit <sha> <URL>`). If it is not sourced from Asahi (no Asahi commit to cite), do not invent
+one: add the line `[asahi-port: no Asahi source: <reason>]` (`NO_ASAHI_NOTE` in `tools/lib.sh`)
+to the message, as the unreviewed note is added to backports. `tools/asahi-review.sh` lists
+these, and you must report each in the final summary.
+
 ## Before calling it done
 
 - Build arm64 with the asahi-arm config, Rust enabled; fix or report failures.
