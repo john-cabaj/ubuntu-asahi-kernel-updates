@@ -65,8 +65,7 @@ Nothing to do when there are no `add` rows.
 
 ## Steps
 
-Run from the kernel tree, in this order (any change below the closing commit means
-re-running steps 0 and 1-4):
+Run from the kernel tree, in this order:
 0. Before every `cranky open`, in this order:
    - `cranky fix` (syncs the in-tree helper scripts and `update.conf`; commits if it changes
      anything).

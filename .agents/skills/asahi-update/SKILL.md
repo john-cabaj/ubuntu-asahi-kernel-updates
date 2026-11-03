@@ -32,11 +32,25 @@ tools), say so in every report. This is the order of work; each step names the s
    - b. Behind: `tools/asahi-rebuild.sh` (drops only the old stack, keeps the rest).
      On `STOP`, load `asahi-conflicts`, resolve, re-run.
 4. **Merge review** (skill `asahi-merge-review`): regenerate per-version SAUCE fixups
-   from the merges; start from the rebuild's `new-only:` files.
-5. **Config and packaging** (skill `asahi-crank`): first `tools/asahi-config-check.py`
-   against Fedora Asahi's configs (apply and commit the `add` entries; report `differs`/`review`
-   for the user), then `cranky open`, `review-master-changes`,
-   `fdr clean updateconfigs`, `close`. Needs `cranky`; if absent, stop and say so.
+   from the merges; start from the rebuild's `new-only:` files. A SAUCE commit built from a
+   merge cites `(backported from merge commit <sha> <Asahi URL>)`, not a local sha.
+   **Provenance check** (skill `asahi-port`, "Provenance URL"): every Asahi-sourced commit
+   in the stack carries the Asahi URL, and only the marker may lack one. A change with no Asahi
+   source gets the `[asahi-port: no Asahi source: <reason>]` note instead. Fix before step 5.
+5. **Config and packaging** (skill `asahi-crank`; needs `cranky`, if absent stop and say so;
+   run it as `local-cranky`, in the supplied tree):
+   1. `tools/asahi-config-check.py` against Fedora Asahi's configs: apply and commit the
+      `add` entries, report `differs`/`review` for the user.
+   2. `cranky fix`.
+   3. `cranky rebase --dry-run`: read the "Rebase needed between X and Y" line. Rebase only
+      if Y stays within the Asahi tag's kernel base (X.Y). If it would go above (e.g.
+      7.2 to 7.3), skip it, report it, never override AGENTS.md. The old Asahi stack must
+      already be dropped (step 3b does that).
+   4. `cranky open`.
+   5. `cranky review-master-changes` (before `close`; if it cannot find the base master
+      version, diff `debian.master` against the old branch instead).
+   6. `cranky fdr clean updateconfigs` (needs a working chroot, see `asahi-crank`).
+   7. `cranky close --base-version <generic base>` (e.g. `7.2.0-5.5`).
 6. **Build/test:** arm64, asahi-arm config, Rust on (a dedicated build skill is not
    written yet). If not done, say so; never call an unbuilt tree verified.
 7. **Report and stop:** report
