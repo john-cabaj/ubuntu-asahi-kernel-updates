@@ -15,6 +15,9 @@ getabis); stop and report instead.
   `Asahi patchset <tag>` marker (`debian.asahi-arm/ubuntu-asahi`) as the last commit.
 - `cranky` and its chroot are available (`cranky chroot create-session RELEASE:linux`).
   If `cranky` is missing, stop and report; do not hand-edit the changelog.
+- Run in the supplied tree (handle directory), not a separate worktree. Use `local-cranky`
+  for every cranky command below (non-interactive: `KERNEL_SERIES_USE=local cranky`).
+  Set `DEBEMAIL`/`DEBFULLNAME` too.
 - Set `GIT_AUTHOR_*`/`GIT_COMMITTER_*` in every call. Never push (AGENTS.md).
 
 ## Asahi config changes (before `cranky open`)

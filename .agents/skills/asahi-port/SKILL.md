@@ -12,6 +12,9 @@ the new patches (oldest first) and the dropped ones (report those). Cherry-pick 
 ones with `-x` and the provenance URL, diff the touched files against the new tag, add the
 marker last. A stable gap or new base: `tools/asahi-rebuild.sh` (below).
 
+WORKTREE is the supplied tree itself (`WORKTREE=$UBUNTU_REPO`): the tools switch it to the new
+branch. Do not use a separate worktree, since cranky needs the handle directory.
+
 ## Choosing BASE
 
 BASE is the Ubuntu commit just before the Asahi stack (packaging included), on the
@@ -26,7 +29,7 @@ starts from the existing Ubuntu Asahi branch, drops only the old Asahi stack, an
 the new one (as Asahi does):
 ```sh
 UBUNTU_REPO=.. OLD=asahi-arm-7.2 LINUX_TAG=v7.2.14 ASAHI_TAG=asahi-7.2.14-1 \
-  WORKTREE=/tmp/x BRANCH=asahi-7.2.14-update tools/asahi-rebuild.sh
+  WORKTREE=$UBUNTU_REPO BRANCH=asahi-7.2.14-update tools/asahi-rebuild.sh
 ```
 It finds the layers itself, prints a few lines, and on a stop says what to resolve; fix,
 `git add`, re-run with the same env (finished phases are skipped). What it does:
@@ -74,7 +77,7 @@ delta needs none of this.
 
 ```sh
 export GIT_AUTHOR_NAME=.. GIT_AUTHOR_EMAIL=.. GIT_COMMITTER_NAME=.. GIT_COMMITTER_EMAIL=..
-UBUNTU_REPO=.. BASE=.. LINUX_TAG=v7.2.12 ASAHI_TAG=asahi-7.2.12-2 WORKTREE=/tmp/x BRANCH=asahi-port \
+UBUNTU_REPO=.. BASE=.. LINUX_TAG=v7.2.12 ASAHI_TAG=asahi-7.2.12-2 WORKTREE=$UBUNTU_REPO BRANCH=asahi-port \
   tools/asahi-port.sh
 ```
 It stops at each conflict (`STOP`): load skill `asahi-conflicts`, resolve, `git add`, re-run.

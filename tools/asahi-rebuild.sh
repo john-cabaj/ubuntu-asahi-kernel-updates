@@ -13,7 +13,7 @@
 #   OLD          existing Ubuntu Asahi branch/commit to start from (e.g. asahi-arm-7.2)
 #   LINUX_TAG    target stable tag (e.g. v7.2.14)
 #   ASAHI_TAG    Asahi tag to port (e.g. asahi-7.2.14-1)
-#   WORKTREE     scratch worktree for the result
+#   WORKTREE     the result tree; set equal to UBUNTU_REPO (a separate dir becomes a git worktree)
 # Optional env:
 #   BRANCH       result branch (default: asahi-rebuild); BRANCH-layers holds the new base
 #   GENERIC      generic Ubuntu base commit (default: nearest first-parent 'UBUNTU: Ubuntu-<digit>')

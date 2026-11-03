@@ -10,7 +10,7 @@
 #   BASE          Ubuntu commit to start from (the commit just before the first Asahi patch)
 #   LINUX_TAG     Linux tag the Asahi tag is based on (e.g. v7.2.12)
 #   ASAHI_TAG     Asahi tag to port (e.g. asahi-7.2.12-2)
-#   WORKTREE      where to create the scratch worktree
+#   WORKTREE      the tree to work in; set equal to UBUNTU_REPO (a separate dir becomes a git worktree)
 # Optional env:
 #   BRANCH        new branch name (default: asahi-port)
 #   KEEP_UBUNTU_FILES  space-separated files where, on conflict, Ubuntu's hunks are kept
@@ -68,7 +68,14 @@ EOS
 }
 
 setup_worktree() {
-  [ -d "$WORKTREE" ] || git -C "$UBUNTU_REPO" worktree add -q -b "$BRANCH" "$WORKTREE" "$BASE" || exit 1
+  if [ "$(cd "$WORKTREE" 2>/dev/null && pwd -P)" = "$(cd "$UBUNTU_REPO" && pwd -P)" ]; then
+    # Working in the supplied tree itself (required by cranky's handle layout): switch it to BRANCH.
+    git -C "$UBUNTU_REPO" rev-parse -q --verify "refs/heads/$BRANCH" >/dev/null ||
+      git -C "$UBUNTU_REPO" checkout -q -b "$BRANCH" "$BASE" || exit 1
+    git -C "$UBUNTU_REPO" checkout -q "$BRANCH" || exit 1
+  else
+    [ -d "$WORKTREE" ] || git -C "$UBUNTU_REPO" worktree add -q -b "$BRANCH" "$WORKTREE" "$BASE" || exit 1
+  fi
   cd "$WORKTREE" || exit 1
   # rerere replays earlier hand resolutions (cache: $GIT_DIR/rr-cache); autoUpdate stages them.
   git config rerere.enabled true; git config rerere.autoUpdate true

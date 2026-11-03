@@ -15,8 +15,13 @@ tools), say so in every report. This is the order of work; each step names the s
    - `behind` (Ubuntu X.Y.Z lower): case 2, step 3b.
    - `new release` (same version): case 1, step 3a.
    - `ahead`: case 3, clean cherry-picks only (AGENTS.md); report skipped patches.
-2. **Set up:** work on a scratch branch/worktree of the Ubuntu Asahi tree (never the
-   published branch). Set `GIT_AUTHOR_*`/`GIT_COMMITTER_*` in every shell call.
+2. **Set up:** work in the Ubuntu Asahi tree supplied in its handle directory
+   (e.g. `.../linux-asahi-arm/linux-main`), on a new local branch (never the published
+   branch). Do not create separate worktrees: cranky only accepts that directory. Pass it as
+   both `UBUNTU_REPO` and `WORKTREE`. Set `GIT_AUTHOR_*`/`GIT_COMMITTER_*` and
+   `DEBEMAIL`/`DEBFULLNAME` in every shell call. Run every cranky command as
+   `local-cranky` (an alias in `~/.bashrc`, which aliases do not expand in non-interactive
+   shells: use `KERNEL_SERIES_USE=local cranky`). Plain `cranky` does not work here.
    If a needed tag is missing locally: `git fetch URL tag NAME`.
    Optional backup (the old stack also stays in git on the old branch):
    `git format-patch -o ~/work/old-stack FIRST^..LAST` over the old Asahi commits.
