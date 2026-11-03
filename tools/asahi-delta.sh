@@ -1,7 +1,7 @@
 #!/bin/bash
 # Patch-id delta between two Asahi stacks (AGENTS.md case 1).
 #
-# Asahi rebases, so commit ids differ between tags; the same patch is recognised by
+# Asahi rebases, so commit ids differ between tags; the same patch is recognized by
 # `git patch-id --stable` over the non-merge commits of each tag's Linux base..tag range.
 #
 # Usage: [REPO=dir] asahi-delta.sh OLD_TAG NEW_TAG     (e.g. asahi-7.2.12-2 asahi-7.2.14-1)

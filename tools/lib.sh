@@ -1,6 +1,6 @@
 # Shared helpers for tools/asahi-*.sh. Source it; do not execute.
 
-# Where Ubuntu records ported Asahi releases (override for another flavour).
+# Where Ubuntu records ported Asahi releases (override for another flavor).
 MARKER_FILE=${MARKER_FILE:-debian.asahi-arm/ubuntu-asahi}
 # File names (ERE) that are Ubuntu packaging, not kernel source: a commit touching only
 # these is part of the packaging layer rather than an Asahi/SAUCE source change.

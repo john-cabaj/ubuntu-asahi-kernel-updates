@@ -47,7 +47,7 @@ CONFIG_X                                        note<'{Asahi enablement config}'
 ```
 
 Values are `y`/`m`, `n` for "is not set", and numbers and strings as `'123'`/`'""'`. One
-`'arm64'` key covers both flavours. Only the annotations matter here, not a generated `.config`.
+`'arm64'` key covers both flavors. Only the annotations matter here, not a generated `.config`.
 
 Get a cheap Fedora clone and run the check with the Asahi stack already on top of the tree
 (its drivers bring the Kconfig symbols; the tool warns if most options are missing):
